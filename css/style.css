@@ -1,0 +1,160 @@
+/* =============================================================
+   style.css — 見た目（和紙のような落ち着いた色合い）
+   ============================================================= */
+:root {
+  --paper: #f6f1e7;
+  --panel: #fffdf8;
+  --ink: #2b2522;
+  --muted: #7a6f68;
+  --line: #e2d8c8;
+  --shu: #b7282e; /* 朱色 */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #17150f;
+    --panel: #221f18;
+    --ink: #eee6d8;
+    --muted: #a99d8c;
+    --line: #3a342a;
+    --shu: #e0575c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+}
+
+.site-header {
+  padding: 20px 24px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.site-header h1 { margin: 0; font-size: 1.6rem; letter-spacing: 0.08em; }
+.site-header p { margin: 4px 0 12px; color: var(--muted); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; padding: 16px; }
+}
+
+/* ---- 操作パネル ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  align-self: start;
+}
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.tab {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+.tab.is-active { background: var(--shu); border-color: var(--shu); color: #fff; }
+
+.hint { color: var(--muted); font-size: 0.85rem; margin: 4px 0 12px; }
+
+.preset-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.preset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.preset svg { display: block; width: 100%; height: auto; border-radius: 4px; }
+.preset:hover, .preset:focus-visible { border-color: var(--shu); }
+
+.field { display: block; margin: 10px 0; font-size: 0.9rem; }
+.field output { color: var(--muted); float: right; }
+.field input[type="range"], .field select, .field input[type="number"] {
+  width: 100%;
+  margin-top: 4px;
+}
+select, input[type="number"] {
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.check { display: block; margin: 8px 0; font-size: 0.9rem; }
+
+.adjust { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 8px; }
+.adjust summary { cursor: pointer; font-weight: bold; padding: 4px 0; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; }
+fieldset[disabled] { opacity: 0.45; }
+legend { padding: 0 4px; font-size: 0.85rem; color: var(--muted); }
+
+.colors { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.colors label { font-size: 0.75rem; text-align: center; }
+.colors input { display: block; width: 100%; height: 32px; border: none; background: none; padding: 0; }
+
+/* ---- ボタン ---- */
+.button-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+button:hover { border-color: var(--shu); }
+button.primary { background: var(--shu); border-color: var(--shu); color: #fff; }
+
+/* ---- プレビュー ---- */
+.stage-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.stage-head h2 { margin: 0; font-size: 1.3rem; letter-spacing: 0.05em; }
+.seed { color: var(--muted); font-size: 0.85rem; }
+.preview {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  aspect-ratio: 1 / 1;
+  max-width: 720px;
+}
+.preview svg { display: block; width: 100%; height: 100%; }
+
+.sub { margin: 20px 0 8px; font-size: 1rem; }
+.sub small { color: var(--muted); font-weight: normal; }
+.variations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  max-width: 720px;
+}
+.variation {
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+}
+.variation svg { display: block; width: 100%; height: auto; }
+.variation span { display: block; padding: 4px 6px; font-size: 0.75rem; }

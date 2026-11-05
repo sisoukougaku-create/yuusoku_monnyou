@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neo有職文様ジェネレーター</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Neo有職文様ジェネレーター</h1>
+    <p>伝統の有職文様をアレンジ・組み合わせ・新規生成</p>
+  </header>
+
+  <main class="layout">
+    <!-- ===== 左側：操作パネル ===== -->
+    <aside class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab is-active" data-tab="arrange" role="tab">アレンジ</button>
+        <button class="tab" data-tab="combine" role="tab">組み合わせ</button>
+        <button class="tab" data-tab="create" role="tab">新規生成</button>
+      </nav>
+
+      <!-- アレンジ：伝統文様を選んで、下の「調整」でいじる -->
+      <section class="tab-body" data-body="arrange">
+        <p class="hint">伝統文様を選び、下の「調整」で自由にアレンジしてください。</p>
+        <div id="presetList" class="preset-list"></div>
+      </section>
+
+      <!-- 組み合わせ：地紋・文様・重ねを自由に組み合わせる -->
+      <section class="tab-body" data-body="combine" hidden>
+        <label class="field">地紋（骨組み）
+          <select id="latticeSelect"></select>
+        </label>
+        <label class="field">文様（花）
+          <select id="motifSelect"></select>
+        </label>
+        <label class="field">重ねる地紋
+          <select id="overlaySelect"></select>
+        </label>
+        <div id="overlayControls">
+          <label class="field">重ねの大きさ <output id="overlayScaleOut"></output>
+            <input type="range" id="overlayScale" min="20" max="200" step="1">
+          </label>
+          <label class="field">重ねの回転 <output id="overlayRotationOut"></output>
+            <input type="range" id="overlayRotation" min="0" max="180" step="1">
+          </label>
+          <label class="field">重ねの濃さ <output id="overlayOpacityOut"></output>
+            <input type="range" id="overlayOpacity" min="0.1" max="1" step="0.05">
+          </label>
+        </div>
+      </section>
+
+      <!-- 新規生成：シードから新しい文様を生み出す -->
+      <section class="tab-body" data-body="create" hidden>
+        <p class="hint">シード（数字）が同じなら、同じ文様が再現されます。</p>
+        <label class="field">シード
+          <input type="number" id="seedInput" min="0">
+        </label>
+        <label class="field">大胆さ <output id="boldnessOut"></output>
+          <input type="range" id="boldness" min="0" max="1" step="0.05" value="0.5">
+        </label>
+        <div class="button-row">
+          <button id="generateBtn" class="primary">新しく生成</button>
+          <button id="seedGenerateBtn">このシードで生成</button>
+        </div>
+      </section>
+
+      <!-- 共通の調整 -->
+      <details class="adjust" open>
+        <summary>調整</summary>
+
+        <label class="field">地紋の大きさ <output id="scaleOut"></output>
+          <input type="range" id="scale" min="20" max="180" step="1">
+        </label>
+        <label class="field">全体の回転 <output id="rotationOut"></output>
+          <input type="range" id="rotation" min="0" max="180" step="1">
+        </label>
+        <label class="field">線の太さ <output id="lineWidthOut"></output>
+          <input type="range" id="lineWidth" min="0.5" max="6" step="0.1">
+        </label>
+        <label class="check"><input type="checkbox" id="double"> 二重線</label>
+
+        <fieldset id="motifControls">
+          <legend>文様（花）</legend>
+          <label class="field">文様の大きさ <output id="motifSizeOut"></output>
+            <input type="range" id="motifSize" min="0.3" max="1.5" step="0.05">
+          </label>
+          <label class="field">文様の回転 <output id="motifRotateOut"></output>
+            <input type="range" id="motifRotate" min="0" max="180" step="1">
+          </label>
+          <label class="field">花びらの数 <output id="petalCountOut"></output>
+            <input type="range" id="petalCount" min="1" max="12" step="1">
+          </label>
+          <label class="field">花びらの形
+            <select id="petalShape"></select>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>配色（襲の色目 風）</legend>
+          <select id="paletteSelect"></select>
+          <div class="colors">
+            <label>地<input type="color" id="color-bg"></label>
+            <label>線<input type="color" id="color-line"></label>
+            <label>文様<input type="color" id="color-motif"></label>
+            <label>差し色<input type="color" id="color-accent"></label>
+          </div>
+        </fieldset>
+      </details>
+    </aside>
+
+    <!-- ===== 右側：プレビュー ===== -->
+    <section class="stage">
+      <div class="stage-head">
+        <h2 id="designName">—</h2>
+        <span id="designSeed" class="seed"></span>
+      </div>
+      <div id="preview" class="preview"></div>
+      <div class="button-row">
+        <button id="saveSvgBtn">SVGで保存</button>
+        <button id="savePngBtn">PNGで保存</button>
+        <button id="variationBtn" class="primary">派生案を作る</button>
+      </div>
+
+      <h3 class="sub">バリエーション <small>クリックで採用</small></h3>
+      <div id="variations" class="variations"></div>
+    </section>
+  </main>
+
+  <!-- 読み込む順番が大事：土台 → 部品 → 組み立て → 画面操作 -->
+  <script src="js/random.js"></script>
+  <script src="js/palettes.js"></script>
+  <script src="js/lattices.js"></script>
+  <script src="js/motifs.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
