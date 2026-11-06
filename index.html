@@ -830,6 +830,16 @@ state.l2.detail = defDetail(state.l2.pattern);
 
 function layerState(n){ return n === 1 ? state.l1 : state.l2; }
 function activeLayerState(){ return layerState(state.activeLayer); }
+/* 図柄（文様・配色・レイヤー設定・描き方）を変えたら保存名を外し、
+   上部の柄名を自動の柄名（文様名ベース）に戻す。どのモードでも共通。
+   呼び出し・復元で名前欄に自動で入った保存名も一緒に空にし、
+   「コードを発行」で古い名前が付き直らないようにする。 */
+function clearCustomName(){
+  if (!state.customName) return;
+  var field = document.getElementById("saveName");
+  if (field && field.value.replace(/^\s+|\s+$/g, "") === state.customName) field.value = "";
+  state.customName = "";
+}
 
 function optsFor(layer, clip){
   return { c: state.colors, sw: state.stroke, mode: state.style, detail: layer.detail, clip: clip, layout: state.layout };
@@ -999,6 +1009,7 @@ function buildPatternGrid(){
   grid.innerHTML = html;
   grid.querySelectorAll(".pat-btn").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var L = activeLayerState();
       L.pattern = b.getAttribute("data-pat");
       if (L.detail == null || !patById(L.pattern).detail) L.detail = defDetail(L.pattern);
@@ -1017,6 +1028,7 @@ function buildPaletteList(){
   $("palList").innerHTML = html;
   $("palList").querySelectorAll(".pal-btn").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var p = palById(b.getAttribute("data-pal"));
       state.paletteId = p.id;
       state.colors = { bg: p.bg, main: p.main, sub: p.sub, accent: p.accent };
@@ -1030,6 +1042,7 @@ function buildPresets(){
   $("presetRow").innerHTML = html;
   $("presetRow").querySelectorAll("[data-preset]").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var pr = PRESETS[Number(b.getAttribute("data-preset"))];
       var pal = palById(pr.pal);
       state.paletteId = pal.id;
@@ -1043,6 +1056,7 @@ function buildPresets(){
 }
 
 function setMode(mode){
+  var l2Before = state.l2.enabled;
   state.mode = mode;
   document.body.setAttribute("data-mode", mode);
   document.querySelectorAll("[data-mode-btn]").forEach(function(b){
@@ -1054,6 +1068,7 @@ function setMode(mode){
   } else if (mode === "combine"){
     state.l2.enabled = true;
   }
+  if (state.l2.enabled !== l2Before) clearCustomName();
   $("presetBlock").classList.toggle("hidden", mode !== "combine");
   render();
 }
@@ -1094,6 +1109,7 @@ function applySeed(seed){
 }
 function mutate(){
   if (state.seed == null){ applySeed(Math.floor(Math.random() * 899999) + 1); return; }
+  clearCustomName();
   var rng = mulberry32(state.seed * 7 + 13);
   var which = Math.floor(rng() * 3);
   if (which === 0){
@@ -1525,20 +1541,21 @@ document.querySelectorAll("[data-mode-btn]").forEach(function(b){
 });
 $("tabL1").addEventListener("click", function(){ state.activeLayer = 1; render(); });
 $("tabL2").addEventListener("click", function(){ if (state.l2.enabled){ state.activeLayer = 2; render(); } });
-$("scaleRange").addEventListener("input", function(){ activeLayerState().scale = Number(this.value); render(); });
-$("rotRange").addEventListener("input", function(){ activeLayerState().rotate = Number(this.value); render(); });
-$("detailRange").addEventListener("input", function(){ activeLayerState().detail = Number(this.value); render(); });
-$("opRange").addEventListener("input", function(){ state.l2.opacity = Number(this.value); render(); });
-$("blendSel").addEventListener("change", function(){ state.l2.blend = this.value; render(); });
-$("strokeRange").addEventListener("input", function(){ state.stroke = Number(this.value); render(); });
+$("scaleRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().scale = Number(this.value); render(); });
+$("rotRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().rotate = Number(this.value); render(); });
+$("detailRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().detail = Number(this.value); render(); });
+$("opRange").addEventListener("input", function(){ clearCustomName(); state.l2.opacity = Number(this.value); render(); });
+$("blendSel").addEventListener("change", function(){ clearCustomName(); state.l2.blend = this.value; render(); });
+$("strokeRange").addEventListener("input", function(){ clearCustomName(); state.stroke = Number(this.value); render(); });
 document.querySelectorAll("#layoutSeg button").forEach(function(b){
-  b.addEventListener("click", function(){ state.layout = b.getAttribute("data-layout"); render(); });
+  b.addEventListener("click", function(){ clearCustomName(); state.layout = b.getAttribute("data-layout"); render(); });
 });
 document.querySelectorAll("#styleSeg button").forEach(function(b){
-  b.addEventListener("click", function(){ state.style = b.getAttribute("data-style"); render(); });
+  b.addEventListener("click", function(){ clearCustomName(); state.style = b.getAttribute("data-style"); render(); });
 });
 [["cBg","bg"],["cMain","main"],["cSub","sub"],["cAccent","accent"]].forEach(function(pair){
   $(pair[0]).addEventListener("input", function(){
+    clearCustomName();
     state.colors[pair[1]] = this.value;
     state.paletteId = "custom";
     render();
