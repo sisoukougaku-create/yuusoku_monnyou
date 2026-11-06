@@ -200,6 +200,31 @@
       .preset-row{ display:flex; flex-wrap:wrap; gap:7px; }
       .preset-row .tool-btn{ font-size:12.5px; padding:6px 11px; }
 
+      /* ---------- save & restore ---------- */
+      .save-name-row{ display:flex; gap:8px; }
+      .save-name-row input{
+        flex:1; min-width:0; font:inherit; font-size:13.5px; padding:8px;
+        border:1.5px solid var(--ink); border-radius:3px; background:var(--panel); color:var(--ink);
+      }
+      .save-msg{ font-size:12.5px; font-weight:700; margin:8px 0 0; }
+      .save-list{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+      .save-item{
+        display:flex; gap:10px; align-items:flex-start;
+        border:1.5px solid var(--line); background:var(--chip); padding:8px; border-radius:3px;
+      }
+      .save-thumb{ flex:0 0 64px; width:64px; height:64px; border:1px solid var(--line); overflow:hidden; background:#fff; }
+      .save-thumb svg{ display:block; width:64px; height:64px; }
+      .save-meta{ flex:1; min-width:0; }
+      .save-meta .sname{ font-weight:700; font-size:13.5px; margin:0; overflow-wrap:anywhere; }
+      .save-meta .sdesc{ font-size:11.5px; color:var(--ink2); margin:2px 0 6px; }
+      .save-btns{ display:flex; gap:6px; flex-wrap:wrap; }
+      .save-btns .tool-btn{ font-size:12px; padding:5px 9px; }
+      .save-empty{ font-size:12.5px; color:var(--ink2); margin:10px 0 0; }
+      textarea.save-code{
+        width:100%; font-family:ui-monospace,Menlo,monospace; font-size:10.5px; line-height:1.5;
+        padding:8px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:var(--ink); resize:vertical;
+      }
+
       .foot{ margin-top:26px; font-size:12px; color:var(--ink2); border-top:1px solid var(--line); padding-top:12px; }
       .hidden{ display:none !important; }
     </style>
@@ -229,6 +254,7 @@
             <button class="tool-btn primary" id="dlFull">全体をPNGで保存</button>
             <button class="tool-btn" id="dlTilePng">タイルPNG</button>
             <button class="tool-btn" id="dlTileSvg">タイルSVG</button>
+            <button class="tool-btn" id="quickSave">この図柄を保存</button>
             <button class="tool-btn" id="gridToggle" aria-pressed="false">リピート境界を表示</button>
           </div>
           <div class="export-result hidden" id="exportResult" role="status">
@@ -282,6 +308,34 @@
                 <button class="tool-btn" id="seedApply">再現する</button>
               </div>
             </div>
+          </div>
+
+          <div class="card" id="saveCard">
+            <h2>保存と復元</h2>
+            <p class="hint">気に入った図柄に名前を付けて控えられます。保存一覧はこのページを開いている間のものなので、閉じても残したい図柄は下の「設定コード」をコピーして手元に保管してください。コードには名前も含まれるので、貼り戻すと名前ごと復元されます。</p>
+            <div class="save-name-row">
+              <input type="text" id="saveName" maxlength="40" placeholder="図柄の名前（空欄なら自動で付けます）" aria-label="図柄の名前" />
+              <button class="tool-btn primary" id="saveBtn" type="button">保存する</button>
+            </div>
+            <p class="save-msg hidden" id="saveMsg" role="status"></p>
+            <div class="save-list" id="saveList"></div>
+            <p class="save-empty" id="saveEmpty">まだ保存した図柄はありません。</p>
+
+            <p class="seg-label">設定コード</p>
+            <p class="hint">今の図柄の名前と全設定（文様・色・大きさ・回転・重ね方・種）を1つのコードにまとめます。上の名前欄に入力した名前もコードに入るので、コードを控えておけば、ページを開き直したときや別の端末でも、貼り付けるだけで名前ごと復元できます。名前が入っていない古いコードもそのまま読み込めます。</p>
+            <button class="tool-btn" id="codeGenBtn" type="button">今の図柄のコードを発行</button>
+            <textarea id="codeOut" class="save-code hidden" readonly rows="4" aria-label="発行された設定コード"></textarea>
+            <div class="export-actions hidden" id="codeActions">
+              <button class="tool-btn" id="codeCopyBtn" type="button">コードをコピー</button>
+            </div>
+            <div class="ctl">
+              <label for="codeIn">コードから復元</label>
+              <textarea id="codeIn" class="save-code" rows="3" placeholder="NY1: で始まるコードをここに貼り付け"></textarea>
+            </div>
+            <div style="margin-top:8px;">
+              <button class="tool-btn primary" id="codeApplyBtn" type="button">コードの図柄を復元する</button>
+            </div>
+            <p class="save-msg hidden" id="codeMsg" role="status"></p>
           </div>
 
           <div class="card">
@@ -759,6 +813,7 @@ function defDetail(patId){
 }
 var state = {
   mode: "arrange",
+  customName: "",
   activeLayer: 1,
   paletteId: "ai",
   colors: { bg:"#f2eee1", main:"#2c4a73", sub:"#7e9cc0", accent:"#b3402a" },
@@ -775,6 +830,16 @@ state.l2.detail = defDetail(state.l2.pattern);
 
 function layerState(n){ return n === 1 ? state.l1 : state.l2; }
 function activeLayerState(){ return layerState(state.activeLayer); }
+/* 図柄（文様・配色・レイヤー設定・描き方）を変えたら保存名を外し、
+   上部の柄名を自動の柄名（文様名ベース）に戻す。どのモードでも共通。
+   呼び出し・復元で名前欄に自動で入った保存名も一緒に空にし、
+   「コードを発行」で古い名前が付き直らないようにする。 */
+function clearCustomName(){
+  if (!state.customName) return;
+  var field = document.getElementById("saveName");
+  if (field && field.value.replace(/^\s+|\s+$/g, "") === state.customName) field.value = "";
+  state.customName = "";
+}
 
 function optsFor(layer, clip){
   return { c: state.colors, sw: state.stroke, mode: state.style, detail: layer.detail, clip: clip, layout: state.layout };
@@ -822,9 +887,10 @@ function render(){
   svg.innerHTML = inner;
 
   /* name plate */
-  document.getElementById("designName").textContent = designName();
-  document.getElementById("designSeed").textContent =
-    state.seed ? "生成の種 No." + state.seed + " ／ シームレスタイル（240×240）で書き出しできます" : "シームレスタイル（240×240）で書き出しできます";
+  document.getElementById("designName").textContent = state.customName ? "「" + state.customName + "」" : designName();
+  var seedLine = state.seed ? "生成の種 No." + state.seed + " ／ シームレスタイル（240×240）で書き出しできます" : "シームレスタイル（240×240）で書き出しできます";
+  if (state.customName) seedLine = "保存名つきの図柄 ／ " + seedLine;
+  document.getElementById("designSeed").textContent = seedLine;
   var dl = "";
   var p1 = patById(state.l1.pattern);
   dl += "<dt>" + p1.name + '<span class="reading">' + p1.reading + "</span></dt><dd>" + esc(p1.meaning) + "</dd>";
@@ -943,6 +1009,7 @@ function buildPatternGrid(){
   grid.innerHTML = html;
   grid.querySelectorAll(".pat-btn").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var L = activeLayerState();
       L.pattern = b.getAttribute("data-pat");
       if (L.detail == null || !patById(L.pattern).detail) L.detail = defDetail(L.pattern);
@@ -961,6 +1028,7 @@ function buildPaletteList(){
   $("palList").innerHTML = html;
   $("palList").querySelectorAll(".pal-btn").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var p = palById(b.getAttribute("data-pal"));
       state.paletteId = p.id;
       state.colors = { bg: p.bg, main: p.main, sub: p.sub, accent: p.accent };
@@ -974,6 +1042,7 @@ function buildPresets(){
   $("presetRow").innerHTML = html;
   $("presetRow").querySelectorAll("[data-preset]").forEach(function(b){
     b.addEventListener("click", function(){
+      clearCustomName();
       var pr = PRESETS[Number(b.getAttribute("data-preset"))];
       var pal = palById(pr.pal);
       state.paletteId = pal.id;
@@ -987,6 +1056,7 @@ function buildPresets(){
 }
 
 function setMode(mode){
+  var l2Before = state.l2.enabled;
   state.mode = mode;
   document.body.setAttribute("data-mode", mode);
   document.querySelectorAll("[data-mode-btn]").forEach(function(b){
@@ -998,6 +1068,7 @@ function setMode(mode){
   } else if (mode === "combine"){
     state.l2.enabled = true;
   }
+  if (state.l2.enabled !== l2Before) clearCustomName();
   $("presetBlock").classList.toggle("hidden", mode !== "combine");
   render();
 }
@@ -1005,6 +1076,7 @@ function setMode(mode){
 /* ================= random generation ================= */
 var CELL_IDS = ["karahana","kiku","ume","sakura","karakusa","tsuru"];
 function applySeed(seed){
+  state.customName = "";
   var rng = mulberry32(seed);
   var pick = function(arr){ return arr[Math.floor(rng() * arr.length)]; };
   var pal = pick(PALETTES);
@@ -1037,6 +1109,7 @@ function applySeed(seed){
 }
 function mutate(){
   if (state.seed == null){ applySeed(Math.floor(Math.random() * 899999) + 1); return; }
+  clearCustomName();
   var rng = mulberry32(state.seed * 7 + 13);
   var which = Math.floor(rng() * 3);
   if (which === 0){
@@ -1203,26 +1276,286 @@ function exportTilePng(){
   });
 }
 
+/* ================= save & restore =================
+   A design is saved as a full snapshot of `state` (both layers, colors,
+   style, layout and the generation seed), so arrange / combine designs —
+   which a bare seed number cannot describe — come back exactly.
+   Two ways to keep a design:
+   - the favorites list below: in-memory only, for the current session;
+   - a setting code ("NY1:" + base64url of the snapshot JSON): the user
+     copies it out and pastes it back any time, on any device, to restore
+     the same design. The snapshot — and therefore the code — includes
+     the design's name (state.customName / snap.name), so a restored
+     design comes back with its name on the name plate and in the name
+     field. Codes issued before names were added carry no name field;
+     cleanSnapshot() defaults it to "" so they still decode. The code
+     is the durable form of a saved design. */
+var savedDesigns = [];
+var savedSeq = 0, thumbSeq = 0;
+
+function snapshotState(){
+  return {
+    v: 1,
+    name: state.customName || "",
+    mode: state.mode,
+    activeLayer: state.activeLayer,
+    paletteId: state.paletteId,
+    colors: { bg: state.colors.bg, main: state.colors.main, sub: state.colors.sub, accent: state.colors.accent },
+    style: state.style,
+    stroke: state.stroke,
+    layout: state.layout,
+    seed: state.seed,
+    l1: { pattern: state.l1.pattern, scale: state.l1.scale, rotate: state.l1.rotate, detail: state.l1.detail },
+    l2: { pattern: state.l2.pattern, scale: state.l2.scale, rotate: state.l2.rotate, detail: state.l2.detail,
+          enabled: state.l2.enabled, opacity: state.l2.opacity, blend: state.l2.blend }
+  };
+}
+function numOr(v, fallback, min, max){
+  v = Number(v);
+  if (!isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
+function cleanLayer(raw, defPat){
+  raw = raw || {};
+  var known = false, i;
+  for (i = 0; i < PATTERNS.length; i++) if (PATTERNS[i].id === raw.pattern) known = true;
+  var patId = known ? raw.pattern : defPat;
+  var pat = patById(patId), detail = null;
+  if (pat.detail){
+    var step = pat.detail.step || 1;
+    detail = raw.detail == null ? pat.detail.def
+      : pat.detail.min + Math.round((numOr(raw.detail, pat.detail.def, pat.detail.min, pat.detail.max) - pat.detail.min) / step) * step;
+  }
+  return { pattern: patId, scale: numOr(raw.scale, 1, 0.45, 2.1), rotate: Math.round(numOr(raw.rotate, 0, 0, 90)), detail: detail };
+}
+function cleanSnapshot(raw){
+  if (!raw || typeof raw !== "object") return null;
+  var modes = ["arrange", "combine", "create"];
+  var c = { bg: "#f2eee1", main: "#2c4a73", sub: "#7e9cc0", accent: "#b3402a" }, k;
+  if (raw.colors){
+    for (k in c){
+      if (/^#[0-9a-fA-F]{6}$/.test(raw.colors[k] || "")) c[k] = raw.colors[k].toLowerCase();
+    }
+  }
+  var palId = "custom", i;
+  for (i = 0; i < PALETTES.length; i++) if (PALETTES[i].id === raw.paletteId) palId = raw.paletteId;
+  var l1 = cleanLayer(raw.l1, "seigaiha");
+  var l2raw = cleanLayer(raw.l2, "shippo");
+  var blends = ["normal", "multiply", "screen", "overlay", "soft-light"];
+  var seed = parseInt(raw.seed, 10);
+  var nm = "";
+  if (typeof raw.name === "string"){
+    nm = raw.name.replace(/[\u0000-\u001f\u007f]/g, "").replace(/^\s+|\s+$/g, "").slice(0, 40);
+  }
+  return {
+    v: 1,
+    name: nm,
+    mode: modes.indexOf(raw.mode) >= 0 ? raw.mode : "arrange",
+    activeLayer: raw.activeLayer === 2 ? 2 : 1,
+    paletteId: palId,
+    colors: c,
+    style: ["both", "fill", "line"].indexOf(raw.style) >= 0 ? raw.style : "both",
+    stroke: numOr(raw.stroke, 1, 0.6, 1.9),
+    layout: raw.layout === "chidori" ? "chidori" : "grid",
+    seed: (seed >= 1 && seed <= 999999) ? seed : null,
+    l1: l1,
+    l2: { pattern: l2raw.pattern, scale: l2raw.scale, rotate: l2raw.rotate, detail: l2raw.detail,
+          enabled: !!(raw.l2 && raw.l2.enabled),
+          opacity: numOr(raw.l2 ? raw.l2.opacity : undefined, 0.55, 0.15, 1),
+          blend: blends.indexOf(raw.l2 && raw.l2.blend) >= 0 ? raw.l2.blend : "multiply" }
+  };
+}
+function applyStateOnly(snap){
+  state.mode = snap.mode;
+  state.customName = snap.name || "";
+  state.paletteId = snap.paletteId;
+  state.colors = { bg: snap.colors.bg, main: snap.colors.main, sub: snap.colors.sub, accent: snap.colors.accent };
+  state.style = snap.style;
+  state.stroke = snap.stroke;
+  state.layout = snap.layout;
+  state.seed = snap.seed;
+  state.l1 = { pattern: snap.l1.pattern, scale: snap.l1.scale, rotate: snap.l1.rotate, detail: snap.l1.detail };
+  state.l2 = { pattern: snap.l2.pattern, scale: snap.l2.scale, rotate: snap.l2.rotate, detail: snap.l2.detail,
+               enabled: snap.l2.enabled, opacity: snap.l2.opacity, blend: snap.l2.blend };
+  state.activeLayer = (snap.activeLayer === 2 && snap.l2.enabled) ? 2 : 1;
+}
+function applySnapshot(snap){
+  applyStateOnly(snap);
+  document.body.setAttribute("data-mode", state.mode);
+  document.querySelectorAll("[data-mode-btn]").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-mode-btn") === state.mode ? "true" : "false");
+  });
+  $("presetBlock").classList.toggle("hidden", state.mode !== "combine");
+  render();
+}
+function encodeSnapshot(snap){
+  var b = btoa(unescape(encodeURIComponent(JSON.stringify(snap))));
+  return "NY1:" + b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeSnapshot(text){
+  try {
+    var s = String(text || "").replace(/\s+/g, "");
+    if (s.indexOf("NY1:") === 0) s = s.slice(4);
+    if (!s) return null;
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    return cleanSnapshot(JSON.parse(decodeURIComponent(escape(atob(s)))));
+  } catch (e) { return null; }
+}
+function makeThumb(snap){
+  var cur = snapshotState();
+  applyStateOnly(snap);
+  var p = "sv" + (++thumbSeq) + "-";
+  var markup = tileSvgMarkup(96)
+    .split("clp1").join(p + "clp1").split("clp2").join(p + "clp2")
+    .split("pat1").join(p + "pat1").split("pat2").join(p + "pat2")
+    .split("gridp").join(p + "gridp");
+  applyStateOnly(cur);
+  return markup;
+}
+function snapDesc(snap){
+  var modeName = snap.mode === "combine" ? "組み合わせ" : (snap.mode === "create" ? "新規生成" : "アレンジ");
+  var d = modeName + "／" + patById(snap.l1.pattern).name;
+  if (snap.l2.enabled) d += " × " + patById(snap.l2.pattern).name;
+  if (snap.seed) d += "／種 No." + snap.seed;
+  return d;
+}
+function escAttr(s){ return esc(s).replace(/"/g, "&quot;"); }
+function renderSavedList(){
+  var list = $("saveList"), html = "";
+  savedDesigns.forEach(function(it){
+    html += '<div class="save-item">' +
+      '<div class="save-thumb" aria-hidden="true">' + it.thumb + "</div>" +
+      '<div class="save-meta"><p class="sname">' + esc(it.name) + '</p>' +
+      '<p class="sdesc">' + esc(it.desc) + "</p>" +
+      '<div class="save-btns">' +
+      '<button class="tool-btn" data-act="load" data-id="' + it.id + '">呼び出す</button>' +
+      '<button class="tool-btn" data-act="code" data-id="' + it.id + '">コードを表示</button>' +
+      '<button class="tool-btn" data-act="del" data-id="' + it.id + '">削除</button>' +
+      "</div></div></div>";
+  });
+  list.innerHTML = html;
+  $("saveEmpty").classList.toggle("hidden", savedDesigns.length > 0);
+  list.querySelectorAll("[data-act]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-id")), act = b.getAttribute("data-act"), it = null, i;
+      for (i = 0; i < savedDesigns.length; i++) if (savedDesigns[i].id === id) it = savedDesigns[i];
+      if (!it) return;
+      if (act === "load"){
+        applySnapshot(it.snap);
+        $("saveName").value = it.name;
+        showSaveMsg("「" + it.name + "」を呼び出しました。");
+      } else if (act === "code"){
+        showCode(it.code);
+        showSaveMsg("「" + it.name + "」のコードを表示しました。下のコード欄からコピーできます。");
+      } else if (act === "del"){
+        savedDesigns = savedDesigns.filter(function(x){ return x.id !== id; });
+        renderSavedList();
+        showSaveMsg("「" + it.name + "」を保存一覧から削除しました。");
+      }
+    });
+  });
+}
+function showSaveMsg(t){
+  var m = $("saveMsg");
+  m.textContent = t;
+  m.classList.remove("hidden");
+}
+function showCodeMsg(t){
+  var m = $("codeMsg");
+  m.textContent = t;
+  m.classList.remove("hidden");
+}
+function showCode(code){
+  var out = $("codeOut");
+  out.value = code;
+  out.classList.remove("hidden");
+  $("codeActions").classList.remove("hidden");
+}
+function saveCurrentDesign(){
+  var name = $("saveName").value.replace(/^\s+|\s+$/g, "").slice(0, 40);
+  if (!name) name = state.customName || designName().replace(/[「」]/g, "");
+  state.customName = name;
+  var snap = snapshotState();
+  var item = { id: ++savedSeq, name: name, snap: snap, code: encodeSnapshot(snap), thumb: "", desc: snapDesc(snap) };
+  item.thumb = makeThumb(snap);
+  savedDesigns.unshift(item);
+  $("saveName").value = "";
+  render();
+  renderSavedList();
+  showSaveMsg("「" + name + "」を保存しました。この名前は設定コードにも含まれます。残しておきたいときは「コードを表示」からコードを控えてください。");
+}
+function copyTextTo(text, btn, doneLabel){
+  var original = btn.textContent;
+  var done = function(){
+    btn.textContent = doneLabel;
+    setTimeout(function(){ btn.textContent = original; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){
+      var out = $("codeOut");
+      out.classList.remove("hidden"); out.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      done();
+    });
+  } else {
+    var out2 = $("codeOut");
+    out2.classList.remove("hidden"); out2.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    done();
+  }
+}
+$("saveBtn").addEventListener("click", saveCurrentDesign);
+$("quickSave").addEventListener("click", function(){
+  $("saveName").value = "";
+  saveCurrentDesign();
+  var card = $("saveCard");
+  if (card.scrollIntoView) { try { card.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+});
+$("codeGenBtn").addEventListener("click", function(){
+  var typed = $("saveName").value.replace(/^\s+|\s+$/g, "").slice(0, 40);
+  if (typed){ state.customName = typed; render(); }
+  showCode(encodeSnapshot(snapshotState()));
+  if (state.customName) showCodeMsg("「" + state.customName + "」のコードを発行しました。名前もコードに含まれています。コピーして手元に保管してください。");
+  else showCodeMsg("今の図柄のコードを発行しました。名前を付けたいときは、上の名前欄に入力してから保存するか、このボタンをもう一度押してください。");
+});
+$("codeCopyBtn").addEventListener("click", function(){ copyTextTo($("codeOut").value, this, "コピーしました"); });
+$("codeApplyBtn").addEventListener("click", function(){
+  var snap = decodeSnapshot($("codeIn").value);
+  if (!snap){
+    showCodeMsg("コードを読み取れませんでした。NY1: で始まるコード全体を貼り付けてください。");
+    return;
+  }
+  applySnapshot(snap);
+  if (snap.name){
+    $("saveName").value = snap.name;
+    showCodeMsg("「" + snap.name + "」を復元しました。名前もコードから戻っています（画面上部の柄名と名前欄に表示されます）。");
+  } else {
+    showCodeMsg("コードの図柄を復元しました。このコードには名前が含まれていませんでした（名前入りコード以前に発行されたコードです）。");
+  }
+});
+
 /* ================= wiring ================= */
 document.querySelectorAll("[data-mode-btn]").forEach(function(b){
   b.addEventListener("click", function(){ setMode(b.getAttribute("data-mode-btn")); });
 });
 $("tabL1").addEventListener("click", function(){ state.activeLayer = 1; render(); });
 $("tabL2").addEventListener("click", function(){ if (state.l2.enabled){ state.activeLayer = 2; render(); } });
-$("scaleRange").addEventListener("input", function(){ activeLayerState().scale = Number(this.value); render(); });
-$("rotRange").addEventListener("input", function(){ activeLayerState().rotate = Number(this.value); render(); });
-$("detailRange").addEventListener("input", function(){ activeLayerState().detail = Number(this.value); render(); });
-$("opRange").addEventListener("input", function(){ state.l2.opacity = Number(this.value); render(); });
-$("blendSel").addEventListener("change", function(){ state.l2.blend = this.value; render(); });
-$("strokeRange").addEventListener("input", function(){ state.stroke = Number(this.value); render(); });
+$("scaleRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().scale = Number(this.value); render(); });
+$("rotRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().rotate = Number(this.value); render(); });
+$("detailRange").addEventListener("input", function(){ clearCustomName(); activeLayerState().detail = Number(this.value); render(); });
+$("opRange").addEventListener("input", function(){ clearCustomName(); state.l2.opacity = Number(this.value); render(); });
+$("blendSel").addEventListener("change", function(){ clearCustomName(); state.l2.blend = this.value; render(); });
+$("strokeRange").addEventListener("input", function(){ clearCustomName(); state.stroke = Number(this.value); render(); });
 document.querySelectorAll("#layoutSeg button").forEach(function(b){
-  b.addEventListener("click", function(){ state.layout = b.getAttribute("data-layout"); render(); });
+  b.addEventListener("click", function(){ clearCustomName(); state.layout = b.getAttribute("data-layout"); render(); });
 });
 document.querySelectorAll("#styleSeg button").forEach(function(b){
-  b.addEventListener("click", function(){ state.style = b.getAttribute("data-style"); render(); });
+  b.addEventListener("click", function(){ clearCustomName(); state.style = b.getAttribute("data-style"); render(); });
 });
 [["cBg","bg"],["cMain","main"],["cSub","sub"],["cAccent","accent"]].forEach(function(pair){
   $(pair[0]).addEventListener("input", function(){
+    clearCustomName();
     state.colors[pair[1]] = this.value;
     state.paletteId = "custom";
     render();
