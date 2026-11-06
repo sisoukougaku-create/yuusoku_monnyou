@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Neo有職文様ジェネレーター</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --paper:#f3edde;
+        --panel:#fbf7ec;
+        --panel2:#efe7d2;
+        --ink:#26231b;
+        --ink2:#6b6350;
+        --line:#d8cdae;
+        --accent:#b03a26;
+        --accent-ink:#fff8ee;
+        --gold:#9a7b2d;
+        --indigo:#2e4a73;
+        --chip:#fffdf6;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --paper:#16171c;
+          --panel:#1f2026;
+          --panel2:#26272f;
+          --ink:#ece5d3;
+          --ink2:#a89e88;
+          --line:#3c3d47;
+          --accent:#d4694f;
+          --accent-ink:#1c1210;
+          --gold:#c9a959;
+          --indigo:#8fb0dd;
+          --chip:#26272f;
+        }
+      }
+      *{ box-sizing:border-box; }
+      html,body{ margin:0; padding:0; }
+      body{
+        background:var(--paper);
+        color:var(--ink);
+        font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+        font-size:15px;
+        line-height:1.65;
+        -webkit-font-smoothing:antialiased;
+      }
+      .serif{ font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif; }
+      .wrap{ max-width:1280px; margin:0 auto; padding:22px 18px 56px; }
+
+      /* ---------- lead ---------- */
+      .lead{ display:flex; gap:18px; align-items:flex-start; margin-bottom:16px; }
+      .lead .vtext{
+        writing-mode:vertical-rl; font-family:"Zen Old Mincho",serif; font-weight:900;
+        font-size:21px; letter-spacing:.28em; color:var(--accent);
+        border-right:2px solid var(--accent); padding-right:10px; line-height:1.5;
+        max-height:120px;
+      }
+      .lead h1{ font-family:"Zen Old Mincho",serif; font-weight:900; font-size:27px; margin:2px 0 6px; letter-spacing:.04em; }
+      .lead p{ margin:0; color:var(--ink2); max-width:640px; font-size:14px; }
+
+      /* ---------- mode tabs ---------- */
+      .modes{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 18px; }
+      .mode-btn{
+        appearance:none; border:1.5px solid var(--ink); background:var(--panel);
+        color:var(--ink); font:inherit; font-weight:700; font-size:14px;
+        padding:9px 18px; border-radius:999px; cursor:pointer; letter-spacing:.06em;
+      }
+      .mode-btn small{ display:block; font-weight:400; font-size:11px; color:var(--ink2); letter-spacing:.02em; }
+      .mode-btn[aria-pressed="true"]{ background:var(--ink); color:var(--paper); }
+      .mode-btn[aria-pressed="true"] small{ color:var(--paper); opacity:.75; }
+
+      /* ---------- layout ---------- */
+      .main{ display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:22px; align-items:start; }
+      @media (max-width:960px){ .main{ grid-template-columns:1fr; } }
+
+      .stage{ background:var(--panel); border:1px solid var(--line); padding:16px; }
+      .stage-frame{ border:1px solid var(--ink); outline:1px solid var(--line); outline-offset:4px; background:#fff; }
+      .stage-frame svg{ display:block; width:100%; height:auto; }
+      .stage-tools{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+      .tool-btn{
+        appearance:none; border:1px solid var(--ink); background:var(--panel); color:var(--ink);
+        font:inherit; font-size:13px; font-weight:700; padding:7px 13px; border-radius:3px; cursor:pointer;
+      }
+      .tool-btn:hover{ background:var(--panel2); }
+      .tool-btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+      .tool-btn[aria-pressed="true"]{ background:var(--ink); color:var(--paper); }
+      .tool-note{ font-size:12px; color:var(--ink2); }
+
+      /* export result (in-page fallback when the host viewer swallows downloads) */
+      .export-result{ margin-top:14px; border:1.5px dashed var(--ink); background:var(--panel2); padding:12px; }
+      .export-result .export-msg{ margin:0 0 10px; font-weight:700; font-size:13.5px; }
+      .export-preview img{ display:block; width:220px; max-width:100%; height:auto; border:1px solid var(--line); background:#fff; }
+      .export-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+      .export-actions a.tool-btn{ text-decoration:none; display:inline-block; }
+      .export-result .tool-note{ margin:8px 0 0; }
+      .export-result textarea{
+        width:100%; margin-top:10px; font-family:ui-monospace,Menlo,monospace; font-size:10.5px; line-height:1.5;
+        padding:8px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:var(--ink); resize:vertical;
+      }
+
+      /* name plate */
+      .plate{ margin-top:18px; border-top:2px solid var(--ink); padding-top:12px; }
+      .plate .dname{ font-family:"Zen Old Mincho",serif; font-weight:900; font-size:23px; letter-spacing:.05em; margin:0 0 2px; }
+      .plate .dseed{ font-size:12px; color:var(--ink2); margin:0 0 8px; }
+      .plate dl{ margin:0; }
+      .plate dt{ font-weight:700; font-size:13px; margin-top:8px; }
+      .plate dt .reading{ color:var(--ink2); font-weight:400; font-size:12px; margin-left:6px; }
+      .plate dd{ margin:2px 0 0; font-size:13.5px; color:var(--ink); }
+
+      /* mockups */
+      .mockups{ margin-top:20px; }
+      .mockups h2, .side h2{
+        font-family:"Zen Old Mincho",serif; font-size:16px; font-weight:900; letter-spacing:.12em;
+        margin:0 0 10px; display:flex; align-items:center; gap:10px;
+      }
+      .mockups h2::after, .side h2::after{ content:""; flex:1; border-top:1px solid var(--line); }
+      .mock-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+      .mock{ background:var(--panel2); border:1px solid var(--line); padding:10px 10px 6px; text-align:center; }
+      .mock svg{ display:block; width:100%; height:auto; }
+      .mock figcaption{ font-size:12px; color:var(--ink2); margin-top:4px; letter-spacing:.08em; }
+      @media (max-width:520px){ .mock-row{ grid-template-columns:1fr 1fr; } .mock:last-child{ grid-column:span 2; max-width:260px; margin:0 auto; width:100%; } }
+
+      /* ---------- side controls ---------- */
+      .side{ display:flex; flex-direction:column; gap:20px; }
+      .card{ background:var(--panel); border:1px solid var(--line); padding:16px; }
+      .card h2{ margin-bottom:12px; }
+      .card .hint{ font-size:12px; color:var(--ink2); margin:-6px 0 10px; }
+
+      .seed-panel{ display:none; }
+      body[data-mode="create"] .seed-panel{ display:block; }
+      .seed-big{
+        appearance:none; width:100%; border:none; cursor:pointer;
+        background:var(--accent); color:var(--accent-ink);
+        font-family:"Zen Old Mincho",serif; font-weight:900; font-size:18px; letter-spacing:.1em;
+        padding:14px 10px; border-radius:3px;
+      }
+      .seed-row{ display:flex; gap:8px; margin-top:10px; }
+      .seed-row .tool-btn{ flex:1; }
+      .seed-num{ font-size:12.5px; color:var(--ink2); margin-top:10px; }
+      .seed-num b{ color:var(--ink); font-size:14px; letter-spacing:.06em; }
+
+      .layer-tabs{ display:flex; gap:0; border:1.5px solid var(--ink); border-radius:3px; overflow:hidden; margin-bottom:12px; }
+      .layer-tabs button{
+        flex:1; appearance:none; border:none; background:var(--panel); color:var(--ink);
+        font:inherit; font-weight:700; font-size:13.5px; padding:8px 4px; cursor:pointer;
+      }
+      .layer-tabs button + button{ border-left:1.5px solid var(--ink); }
+      .layer-tabs button[aria-pressed="true"]{ background:var(--indigo); color:#fff; }
+      .layer-tabs button:disabled{ opacity:.35; cursor:default; }
+
+      .pat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+      .pat-btn{
+        appearance:none; border:1.5px solid var(--line); background:var(--chip); cursor:pointer;
+        padding:5px 4px 4px; border-radius:3px; font:inherit;
+      }
+      .pat-btn svg{ display:block; width:100%; height:auto; border:1px solid rgba(0,0,0,.08); }
+      .pat-btn span{ display:block; font-size:11.5px; font-weight:700; margin-top:4px; color:var(--ink); letter-spacing:.04em; }
+      .pat-btn[aria-pressed="true"]{ border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent); }
+      @media (max-width:520px){ .pat-grid{ grid-template-columns:repeat(5,1fr); } .pat-btn span{ font-size:10.5px; } }
+
+      .ctl{ margin-top:14px; }
+      .ctl label{ display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px; }
+      .ctl label output{ font-weight:400; color:var(--ink2); font-variant-numeric:tabular-nums; }
+      .ctl input[type="range"]{ width:100%; accent-color:var(--accent); height:28px; }
+      .seg{ display:flex; border:1.5px solid var(--ink); border-radius:3px; overflow:hidden; }
+      .seg button{
+        flex:1; appearance:none; border:none; background:var(--panel); color:var(--ink);
+        font:inherit; font-size:13px; font-weight:700; padding:7px 2px; cursor:pointer;
+      }
+      .seg button + button{ border-left:1.5px solid var(--ink); }
+      .seg button[aria-pressed="true"]{ background:var(--ink); color:var(--paper); }
+      .seg-label{ font-size:13px; font-weight:700; margin:14px 0 5px; }
+      select{
+        width:100%; font:inherit; font-size:13.5px; padding:8px; border:1.5px solid var(--ink);
+        border-radius:3px; background:var(--panel); color:var(--ink);
+      }
+
+      .pal-list{ display:flex; flex-direction:column; gap:7px; }
+      .pal-btn{
+        appearance:none; display:flex; align-items:center; gap:10px; width:100%;
+        border:1.5px solid var(--line); background:var(--chip); padding:7px 10px; border-radius:3px;
+        cursor:pointer; font:inherit; text-align:left;
+      }
+      .pal-btn[aria-pressed="true"]{ border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent); }
+      .pal-btn .pname{ font-weight:700; font-size:13.5px; min-width:64px; }
+      .pal-btn .pread{ font-size:11px; color:var(--ink2); margin-left:-6px; min-width:52px; }
+      .pal-chips{ display:flex; gap:4px; margin-left:auto; }
+      .pal-chips i{ width:19px; height:19px; border-radius:50%; border:1px solid rgba(0,0,0,.22); display:block; }
+      .color-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; }
+      .color-cell label{ display:block; font-size:11.5px; font-weight:700; margin-bottom:3px; text-align:center; }
+      .color-cell input[type="color"]{
+        width:100%; height:36px; padding:2px; border:1.5px solid var(--line); border-radius:3px; background:var(--chip); cursor:pointer;
+      }
+      .color-cell .hex{ display:block; text-align:center; font-size:10.5px; color:var(--ink2); margin-top:2px; font-variant-numeric:tabular-nums; }
+
+      .preset-row{ display:flex; flex-wrap:wrap; gap:7px; }
+      .preset-row .tool-btn{ font-size:12.5px; padding:6px 11px; }
+
+      .foot{ margin-top:26px; font-size:12px; color:var(--ink2); border-top:1px solid var(--line); padding-top:12px; }
+      .hidden{ display:none !important; }
+    </style>
+  </head>
+  <body data-mode="arrange">
+    <div class="wrap">
+      <div class="lead">
+        <div class="vtext" aria-hidden="true">文様工房</div>
+        <div>
+          <h1>Neo有職文様ジェネレーター</h1>
+          <p>平安の宮廷装束を彩った有職文様を、ブラウザの中で自在に操る工房です。古典文様のアレンジ、二つの文様の重ね合わせ、そして「種」からの新規生成——作った文様はシームレスなタイルとして書き出し、生地やグッズのデザインにそのまま使えます。</p>
+        </div>
+      </div>
+
+      <nav class="modes" aria-label="モード">
+        <button class="mode-btn" data-mode-btn="arrange" aria-pressed="true">アレンジ<small>既存文様を色・大きさ・描き方で変える</small></button>
+        <button class="mode-btn" data-mode-btn="combine" aria-pressed="false">組み合わせ<small>二つの文様を重ねて新しい表情に</small></button>
+        <button class="mode-btn" data-mode-btn="create" aria-pressed="false">新規生成<small>「種」から文様をランダムに生む</small></button>
+      </nav>
+
+      <div class="main">
+        <section class="stage" aria-label="プレビュー">
+          <div class="stage-frame">
+            <svg id="stageSvg" viewBox="0 0 1200 840" role="img" aria-label="生成された文様のプレビュー"></svg>
+          </div>
+          <div class="stage-tools">
+            <button class="tool-btn primary" id="dlFull">全体をPNGで保存</button>
+            <button class="tool-btn" id="dlTilePng">タイルPNG</button>
+            <button class="tool-btn" id="dlTileSvg">タイルSVG</button>
+            <button class="tool-btn" id="gridToggle" aria-pressed="false">リピート境界を表示</button>
+          </div>
+          <div class="export-result hidden" id="exportResult" role="status">
+            <p class="export-msg" id="exportMsg"></p>
+            <div class="export-preview hidden" id="exportPreview"><img id="exportImg" alt="書き出した画像のプレビュー" /></div>
+            <div class="export-actions hidden" id="exportActions">
+              <a class="tool-btn primary" id="exportOpen" href="#" download>ファイルを開く／保存する</a>
+              <button class="tool-btn hidden" id="exportCopy" type="button">SVGコードをコピー</button>
+            </div>
+            <p class="tool-note hidden" id="exportHint"></p>
+            <textarea id="exportCode" class="hidden" readonly rows="6" aria-label="SVGコード"></textarea>
+          </div>
+          <div class="plate">
+            <p class="dname serif" id="designName">—</p>
+            <p class="dseed" id="designSeed"></p>
+            <dl id="meaningList"></dl>
+          </div>
+          <div class="mockups">
+            <h2>グッズプレビュー</h2>
+            <div class="mock-row">
+              <figure class="mock" style="margin:0">
+                <svg id="mockCloth" viewBox="0 0 200 200" aria-label="風呂敷のプレビュー"></svg>
+                <figcaption>風呂敷</figcaption>
+              </figure>
+              <figure class="mock" style="margin:0">
+                <svg id="mockTote" viewBox="0 0 200 200" aria-label="トートバッグのプレビュー"></svg>
+                <figcaption>トートバッグ</figcaption>
+              </figure>
+              <figure class="mock" style="margin:0">
+                <svg id="mockFan" viewBox="0 0 200 200" aria-label="扇子のプレビュー"></svg>
+                <figcaption>扇子</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <div class="card seed-panel">
+            <h2>新規生成</h2>
+            <p class="hint">「種（シード）」をもとに、文様・配色・重ね方をまるごとランダムに決めます。気に入った種は控えておくと、同じ文様を再現できます。</p>
+            <button class="seed-big" id="genBtn">新しい文様を生成</button>
+            <div class="seed-row">
+              <button class="tool-btn" id="mutateBtn">少しだけ変える</button>
+              <button class="tool-btn" id="reSeedBtn">種を入力して再現</button>
+            </div>
+            <p class="seed-num">現在の種：<b id="seedNum">—</b></p>
+            <div class="ctl hidden" id="seedInputRow">
+              <label for="seedInput">種（1〜999999）</label>
+              <div style="display:flex; gap:8px;">
+                <input type="number" id="seedInput" min="1" max="999999" style="flex:1; font:inherit; padding:7px; border:1.5px solid var(--ink); border-radius:3px; background:var(--panel); color:var(--ink);" />
+                <button class="tool-btn" id="seedApply">再現する</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>文様</h2>
+            <div class="layer-tabs" role="group" aria-label="編集する文様">
+              <button id="tabL1" aria-pressed="true">文様 1</button>
+              <button id="tabL2" aria-pressed="false" disabled>文様 2（重ね）</button>
+            </div>
+            <div class="pat-grid" id="patGrid"></div>
+
+            <div class="ctl">
+              <label for="scaleRange">大きさ <output id="scaleOut">1.00</output></label>
+              <input type="range" id="scaleRange" min="0.45" max="2.1" step="0.05" value="1" />
+            </div>
+            <div class="ctl">
+              <label for="rotRange">回転 <output id="rotOut">0°</output></label>
+              <input type="range" id="rotRange" min="0" max="90" step="1" value="0" />
+            </div>
+            <div class="ctl hidden" id="detailCtl">
+              <label for="detailRange"><span id="detailLabel">花びらの数</span> <output id="detailOut">8</output></label>
+              <input type="range" id="detailRange" min="5" max="12" step="1" value="8" />
+            </div>
+
+            <p class="seg-label">並び方（花文様など）</p>
+            <div class="seg" id="layoutSeg">
+              <button data-layout="grid" aria-pressed="true">並列</button>
+              <button data-layout="chidori" aria-pressed="false">千鳥</button>
+            </div>
+
+            <div id="l2Controls" class="hidden">
+              <div class="ctl">
+                <label for="opRange">文様2の濃さ <output id="opOut">0.55</output></label>
+                <input type="range" id="opRange" min="0.15" max="1" step="0.05" value="0.55" />
+              </div>
+              <div class="ctl">
+                <label for="blendSel">重ね方</label>
+                <select id="blendSel">
+                  <option value="normal">通常</option>
+                  <option value="multiply" selected>乗算（色を深める）</option>
+                  <option value="screen">スクリーン（色を明るく）</option>
+                  <option value="overlay">オーバーレイ</option>
+                  <option value="soft-light">ソフトライト</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="presetBlock" class="hidden">
+              <p class="seg-label">おすすめの組み合わせ</p>
+              <div class="preset-row" id="presetRow"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>色 — 襲の色目</h2>
+            <p class="hint">平安貴族の重ね着の配色「襲の色目」をヒントにした色組です。個別の色も変えられます。</p>
+            <div class="pal-list" id="palList"></div>
+            <div class="color-grid">
+              <div class="color-cell"><label for="cBg">地色</label><input type="color" id="cBg" /><span class="hex" id="hBg"></span></div>
+              <div class="color-cell"><label for="cMain">主色</label><input type="color" id="cMain" /><span class="hex" id="hMain"></span></div>
+              <div class="color-cell"><label for="cSub">副色</label><input type="color" id="cSub" /><span class="hex" id="hSub"></span></div>
+              <div class="color-cell"><label for="cAccent">差し色</label><input type="color" id="cAccent" /><span class="hex" id="hAccent"></span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>描き方</h2>
+            <p class="seg-label" style="margin-top:0">表現</p>
+            <div class="seg" id="styleSeg">
+              <button data-style="both" aria-pressed="true">ぬり＋せん</button>
+              <button data-style="fill" aria-pressed="false">ぬり</button>
+              <button data-style="line" aria-pressed="false">せん</button>
+            </div>
+            <div class="ctl">
+              <label for="strokeRange">線の太さ <output id="strokeOut">1.00</output></label>
+              <input type="range" id="strokeRange" min="0.6" max="1.9" step="0.1" value="1" />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <p class="foot">書き出したタイルは上下左右がつながるシームレス仕様です。生地プリントやグッズ制作の下絵としてご利用ください。文様の由来は各文様の説明をご覧ください。</p>
+    </div>
+
+<script>
+"use strict";
+/* ================= helpers ================= */
+var T = 240, TAU = Math.PI * 2;
+function f1(n){ return Math.round(n * 10) / 10; }
+function pol(cx, cy, r, deg){ var a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
+function ptsStr(a){ return a.map(function(p){ return f1(p[0]) + "," + f1(p[1]); }).join(" "); }
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ================= palettes （襲の色目） ================= */
+var PALETTES = [
+  { id:"ai",      name:"藍白",   reading:"あいじろ",     bg:"#f2eee1", main:"#2c4a73", sub:"#7e9cc0", accent:"#b3402a" },
+  { id:"suo",     name:"蘇芳",   reading:"すおう",       bg:"#f4e7d7", main:"#93323a", sub:"#c98a5e", accent:"#c79a2e" },
+  { id:"moegi",   name:"萌葱",   reading:"もえぎ",       bg:"#edf0da", main:"#47663c", sub:"#93ac7e", accent:"#c19a28" },
+  { id:"fuji",    name:"藤紫",   reading:"ふじむらさき", bg:"#efe9f5", main:"#6a4d9f", sub:"#ab97d4", accent:"#c19a28" },
+  { id:"yamabuki",name:"山吹",   reading:"やまぶき",     bg:"#faf2dc", main:"#c08f14", sub:"#e6c766", accent:"#8a5a24" },
+  { id:"kohbai",  name:"紅梅",   reading:"こうばい",     bg:"#f9ecec", main:"#bc5468", sub:"#e3a7b1", accent:"#5f7052" },
+  { id:"ginnezu", name:"銀鼠",   reading:"ぎんねず",     bg:"#e9edee", main:"#57626e", sub:"#9fadb8", accent:"#2f3e4c" },
+  { id:"sumikin", name:"墨金",   reading:"すみきん",     bg:"#1e1e24", main:"#c8a95c", sub:"#7d6c42", accent:"#e6ddc4" },
+  { id:"shukin",  name:"朱金",   reading:"しゅきん",     bg:"#86281f", main:"#eec26e", sub:"#d18a4b", accent:"#f6ecd9" }
+];
+function palById(id){ for (var i=0;i<PALETTES.length;i++) if (PALETTES[i].id===id) return PALETTES[i]; return PALETTES[0]; }
+
+/* ================= motif generators =================
+   Each returns SVG markup for one 240x240 seamless tile (no background).
+   o = { c:{bg,main,sub,accent}, sw, mode:'fill'|'line'|'both', detail, clip, layout } */
+function fillC(o, c){ return o.mode === "line" ? "none" : c; }
+function lineC(o, c){ return o.mode === "fill" ? "none" : c; }
+function petalStroke(o, cMain){
+  if (o.mode === "line") return cMain;
+  if (o.mode === "both") return o.c.bg;
+  return "none";
+}
+function petalPath(L, W){
+  return "M0 0 Q " + f1(W) + " " + f1(-L*0.52) + " 0 " + f1(-L) + " Q " + f1(-W) + " " + f1(-L*0.52) + " 0 0 Z";
+}
+function sakuraPetalPath(L, W){
+  var nx = W * 0.30;
+  return "M0 0 Q " + f1(W) + " " + f1(-L*0.5) + " " + f1(nx) + " " + f1(-L) +
+         " L 0 " + f1(-L*0.84) + " L " + f1(-nx) + " " + f1(-L) +
+         " Q " + f1(-W) + " " + f1(-L*0.5) + " 0 0 Z";
+}
+function spiralPath(cx, cy, rMax, turns, dir, a0){
+  var steps = Math.max(24, turns * 18), s = "", i, t, r, a, x, y;
+  for (i = 0; i <= steps; i++){
+    t = i / steps; r = rMax * t; a = a0 + dir * t * turns * TAU;
+    x = cx + r * Math.cos(a); y = cy + r * Math.sin(a);
+    s += (i === 0 ? "M" : "L") + f1(x) + " " + f1(y) + " ";
+  }
+  return s;
+}
+function hexPts(cx, cy, R){
+  var a = [], k;
+  for (k = 0; k < 6; k++) a.push(pol(cx, cy, R, k * 60));
+  return ptsStr(a);
+}
+function hexGrid(R, cb){
+  var dx = Math.sqrt(3) * R, s = "", i, j, cx, cy;
+  for (j = -3; j <= 6; j++){
+    for (i = -3; i <= 6; i++){
+      cx = i * dx + j * dx / 2; cy = j * 1.5 * R;
+      if (cx < -dx || cx > T + dx || cy < -2 * R || cy > T + 2 * R) continue;
+      s += cb(cx, cy, i, j);
+    }
+  }
+  return s;
+}
+/* cell-based wrapper: draws a motif into 2x2 cells, seamless via vertical wrap copies */
+function cellTile(o, draw){
+  var cs = T / 2, s = "", cells = [[cs/2,cs/2],[cs*1.5,cs/2],[cs/2,cs*1.5],[cs*1.5,cs*1.5]], i, x, y, dys, d;
+  for (i = 0; i < 4; i++){
+    x = cells[i][0]; y = cells[i][1];
+    if (o.layout === "chidori" && i % 2 === 1) y += cs / 2;
+    dys = [0, -T, T];
+    for (d = 0; d < 3; d++) s += draw(x, y + dys[d]);
+  }
+  return s;
+}
+
+/* ---- 青海波 ---- */
+function gSeigaiha(o){
+  var d = 120, r = 60, s = '<g clip-path="url(#' + o.clip + ')">', row, k, x, y, off, ring;
+  for (row = 0; row < 9; row++){
+    y = -20 + row * 40; off = (row % 2) * 60;
+    for (k = -1; k < 4; k++){
+      x = off + k * d;
+      s += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + fillC(o, o.c.main) +
+           '" stroke="' + (o.mode === "line" ? o.c.main : o.c.bg) + '" stroke-width="' + f1(2.6 * o.sw) + '"/>';
+      for (ring = 0; ring < 2; ring++){
+        s += '<circle cx="' + x + '" cy="' + y + '" r="' + f1(r * (ring === 0 ? 0.66 : 0.33)) +
+             '" fill="none" stroke="' + (o.mode === "line" ? o.c.sub : o.c.bg) + '" stroke-width="' + f1(2 * o.sw) + '"/>';
+      }
+    }
+  }
+  return s + "</g>";
+}
+/* ---- 七宝 ---- */
+function gShippo(o){
+  var st = 120, r = 120, s = '<g clip-path="url(#' + o.clip + ')">', i, j, x, y;
+  for (j = 0; j < 3; j++) for (i = 0; i < 3; i++){
+    x = 60 + i * st; y = 60 + j * st;
+    s += '<circle cx="' + x + '" cy="' + y + '" r="11" fill="none" stroke="' + lineC(o, o.c.sub) + '" stroke-width="' + f1(1.8 * o.sw) + '"/>';
+  }
+  for (j = 0; j <= 2; j++) for (i = 0; i <= 2; i++){
+    x = i * st; y = j * st;
+    s += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + fillC(o, (i + j) % 2 ? o.c.sub : o.c.main) +
+         '" fill-opacity="' + (o.mode === "line" ? 0 : 0.55) + '" stroke="' + lineC(o, o.c.main) + '" stroke-width="' + f1(2.2 * o.sw) + '"/>';
+  }
+  for (j = 0; j <= 2; j++) for (i = 0; i <= 2; i++){
+    s += '<circle cx="' + (i * st) + '" cy="' + (j * st) + '" r="4.5" fill="' + o.c.accent + '"/>';
+  }
+  return s + "</g>";
+}
+/* ---- 亀甲 ---- */
+function gKikko(o){
+  var R = 40;
+  return '<g clip-path="url(#' + o.clip + ')">' + hexGrid(R, function(cx, cy, i, j){
+    var fill = "none", op = "";
+    if (o.mode === "fill"){ fill = (i + j) % 2 ? o.c.sub : o.c.main; }
+    else if (o.mode === "both"){ fill = (i + j) % 2 ? o.c.sub : o.c.main; op = ' fill-opacity="0.30"'; }
+    return '<polygon points="' + hexPts(cx, cy, R) + '" fill="' + fill + '"' + op +
+      ' stroke="' + lineC(o, o.c.main) + '" stroke-width="' + f1(2.4 * o.sw) + '" stroke-linejoin="round"/>' +
+      '<polygon points="' + hexPts(cx, cy, R * 0.6) + '" fill="none" stroke="' +
+      (o.mode === "fill" ? o.c.bg : lineC(o, o.c.sub)) + '" stroke-width="' + f1(1.9 * o.sw) + '" stroke-linejoin="round"/>' +
+      '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="3.4" fill="' + (o.mode === "fill" ? o.c.bg : o.c.accent) + '"/>';
+  }) + "</g>";
+}
+/* ---- 麻の葉 ---- */
+function gAsanoha(o){
+  var R = 40;
+  return '<g clip-path="url(#' + o.clip + ')">' + hexGrid(R, function(cx, cy){
+    var s = "", k, V = [], mOA, mOB, mAB;
+    for (k = 0; k < 6; k++) V.push(pol(cx, cy, R, k * 60));
+    if (o.mode !== "line") s += '<polygon points="' + hexPts(cx, cy, R) + '" fill="' + o.c.main + '" fill-opacity="0.10"/>';
+    s += '<polygon points="' + hexPts(cx, cy, R) + '" fill="none" stroke="' + o.c.main + '" stroke-width="' + f1(2.2 * o.sw) + '" stroke-linejoin="round"/>';
+    for (k = 0; k < 6; k++){
+      var A = V[k], B = V[(k + 1) % 6];
+      s += '<line x1="' + f1(cx) + '" y1="' + f1(cy) + '" x2="' + f1(A[0]) + '" y2="' + f1(A[1]) + '" stroke="' + o.c.main + '" stroke-width="' + f1(1.7 * o.sw) + '"/>';
+      mOA = [(cx + A[0]) / 2, (cy + A[1]) / 2]; mOB = [(cx + B[0]) / 2, (cy + B[1]) / 2]; mAB = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+      s += '<path d="M' + f1(mOA[0]) + " " + f1(mOA[1]) + " L" + f1(mAB[0]) + " " + f1(mAB[1]) + " L" + f1(mOB[0]) + " " + f1(mOB[1]) +
+           " L" + f1(mOA[0]) + " " + f1(mOA[1]) + '" fill="none" stroke="' + o.c.sub + '" stroke-width="' + f1(1.7 * o.sw) + '" stroke-linejoin="round"/>';
+    }
+    s += '<polygon points="' + hexPts(cx, cy, R * 0.17) + '" fill="none" stroke="' + o.c.accent + '" stroke-width="' + f1(1.6 * o.sw) + '" stroke-linejoin="round"/>';
+    return s;
+  }) + "</g>";
+}
+/* ---- 立涌 ---- */
+function gTatewaku(o){
+  var s = '<g clip-path="url(#' + o.clip + ')">', cols = [30, 90, 150, 210], ci, cx, phase, y, left, right, k, yy, fx;
+  for (ci = 0; ci < 4; ci++){
+    cx = cols[ci]; phase = (ci % 2) * Math.PI; left = []; right = [];
+    for (y = -130; y <= 370; y += 10){
+      var sn = Math.sin((y / 120) * TAU + phase);
+      left.push([cx - 17 + 13 * sn, y]); right.push([cx + 17 + 13 * sn, y]);
+    }
+    var d = "M" + ptsStr(left).replace(/ /g, " L") + " L" + ptsStr(right.reverse()).replace(/ /g, " L") + " Z";
+    s += '<path d="' + d + '" fill="' + fillC(o, ci % 2 ? o.c.sub : o.c.main) + '" stroke="' +
+         (o.mode === "line" ? o.c.main : "none") + '" stroke-width="' + f1(2.2 * o.sw) + '" stroke-linejoin="round"/>';
+    if (o.mode !== "line"){
+      var cen = [];
+      for (y = -130; y <= 370; y += 10) cen.push([cx + 13 * Math.sin((y / 120) * TAU + phase), y]);
+      s += '<path d="M' + ptsStr(cen).replace(/ /g, " L") + '" fill="none" stroke="' + o.c.bg + '" stroke-width="' + f1(1.8 * o.sw) + '" opacity="0.75"/>';
+      for (k = -1; k < 4; k++){
+        yy = (phase === 0 ? 30 : 90) + k * 120; fx = cx + 13;
+        for (var q = 0; q < 5; q++){ var pp = pol(fx, yy, 4.6, q * 72); s += '<circle cx="' + f1(pp[0]) + '" cy="' + f1(pp[1]) + '" r="2.1" fill="' + o.c.bg + '"/>'; }
+        s += '<circle cx="' + fx + '" cy="' + yy + '" r="1.7" fill="' + o.c.accent + '"/>';
+      }
+    } else {
+      for (k = -1; k < 4; k++){
+        yy = (phase === 0 ? 30 : 90) + k * 120;
+        s += '<circle cx="' + (cx + 13) + '" cy="' + yy + '" r="2.6" fill="' + o.c.accent + '"/>';
+      }
+    }
+  }
+  return s + "</g>";
+}
+/* ---- 流水 ---- */
+function waveBandPath(y, th, phase){
+  var top = [], bot = [], x;
+  for (x = -14; x <= 254; x += 8){ top.push([x, y + 7 * Math.sin((x + phase) / 240 * TAU * 2)]); }
+  for (x = 254; x >= -14; x -= 8){ bot.push([x, y + th + 7 * Math.sin((x + phase) / 240 * TAU * 2 + 0.6)]); }
+  return "M" + ptsStr(top).replace(/ /g, " L") + " L" + ptsStr(bot).replace(/ /g, " L") + " Z";
+}
+function waveLinePath(y, phase){
+  var p = [], x;
+  for (x = -14; x <= 254; x += 8) p.push([x, y + 7 * Math.sin((x + phase) / 240 * TAU * 2)]);
+  return "M" + ptsStr(p).replace(/ /g, " L");
+}
+function gRyusui(o){
+  var ths = [18, 10, 15, 8, 17], cols = [o.c.main, o.c.sub, o.c.main, o.c.main, o.c.sub];
+  var s = '<g clip-path="url(#' + o.clip + ')">', k, idx, y;
+  for (k = -1; k < 7; k++){
+    idx = ((k % 5) + 5) % 5; y = k * 48;
+    if (o.mode === "line"){
+      s += '<path d="' + waveLinePath(y + 10, k * 40) + '" fill="none" stroke="' + cols[idx] + '" stroke-width="' + f1(3 * o.sw) + '" stroke-linecap="round"/>';
+    } else {
+      s += '<path d="' + waveBandPath(y + 6, ths[idx], k * 40) + '" fill="' + cols[idx] + '" stroke="' + (o.mode === "both" ? o.c.bg : "none") + '" stroke-width="' + f1(1.4 * o.sw) + '" stroke-linejoin="round"/>';
+    }
+  }
+  return s + "</g>";
+}
+/* ---- 市松 ---- */
+function gIchimatsu(o){
+  var sz = 60, s = "", i, j;
+  for (j = 0; j < 4; j++) for (i = 0; i < 4; i++){
+    var mainSq = (i + j) % 2 === 0, x = i * sz, y = j * sz;
+    s += '<rect x="' + x + '" y="' + y + '" width="' + sz + '" height="' + sz + '" fill="' + fillC(o, mainSq ? o.c.main : o.c.sub) +
+         '" stroke="' + lineC(o, o.c.main) + '" stroke-width="' + f1(1.8 * o.sw) + '"/>';
+    if (o.mode === "line"){
+      s += '<rect x="' + (x + 15) + '" y="' + (y + 15) + '" width="30" height="30" fill="none" stroke="' + o.c.sub + '" stroke-width="' + f1(1.6 * o.sw) + '"/>';
+    } else if (!mainSq){
+      s += '<rect x="' + (x + 24) + '" y="' + (y + 24) + '" width="12" height="12" fill="' + o.c.accent + '" transform="rotate(45 ' + (x + 30) + " " + (y + 30) + ')"/>';
+    }
+  }
+  return s;
+}
+/* ---- 矢絣 ---- */
+function gYagasuri(o){
+  var s = '<g clip-path="url(#' + o.clip + ')">', centers = [28, 84, 140, 196, 252], ci, cx, y0, y;
+  for (ci = 0; ci < centers.length; ci++){
+    cx = centers[ci]; y0 = (ci % 2) * 56;
+    for (y = y0 - 112; y < T + 112; y += 112){
+      s += '<path d="M' + cx + " " + y + " L" + (cx + 24) + " " + (y + 26) + " L" + (cx + 24) + " " + (y + 104) +
+           " L" + cx + " " + (y + 82) + " L" + (cx - 24) + " " + (y + 104) + " L" + (cx - 24) + " " + (y + 26) + ' Z" fill="' +
+           fillC(o, o.c.main) + '" stroke="' + lineC(o, o.c.main) + '" stroke-width="' + f1(2.1 * o.sw) + '" stroke-linejoin="round"/>';
+      s += '<path d="M' + (cx - 24) + " " + (y + 32) + " L" + cx + " " + (y + 54) + " L" + (cx + 24) + " " + (y + 32) +
+           " M" + cx + " " + (y + 6) + " L" + cx + " " + (y + 54) +
+           " M" + (cx - 24) + " " + (y + 62) + " L" + cx + " " + (y + 80) + " L" + (cx + 24) + " " + (y + 62) +
+           '" fill="none" stroke="' + (o.mode === "line" ? o.c.sub : o.c.bg) + '" stroke-width="' + f1(2.1 * o.sw) + '" stroke-linecap="round"/>';
+    }
+  }
+  return s + "</g>";
+}
+/* ---- 唐花 ---- */
+function drawKarahana(cx, cy, R, o){
+  var n = o.detail || 8, s = "", k, a, pp;
+  for (k = 0; k < n; k++){
+    a = k * 360 / n + 180 / n; pp = pol(cx, cy, R * 1.02, a);
+    s += '<circle cx="' + f1(pp[0]) + '" cy="' + f1(pp[1]) + '" r="' + f1(R * 0.055) + '" fill="' + o.c.accent + '"/>';
+  }
+  for (k = 0; k < n; k++){
+    s += '<path d="' + petalPath(R * 0.94, R * 0.36) + '" transform="translate(' + f1(cx) + " " + f1(cy) + ") rotate(" + f1(k * 360 / n) +
+         ')" fill="' + fillC(o, o.c.main) + '" stroke="' + petalStroke(o, o.c.main) + '" stroke-width="' + f1(1.3 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  for (k = 0; k < n; k++){
+    s += '<path d="' + petalPath(R * 0.54, R * 0.21) + '" transform="translate(' + f1(cx) + " " + f1(cy) + ") rotate(" + f1(k * 360 / n + 180 / n) +
+         ')" fill="' + fillC(o, o.c.sub) + '" stroke="' + petalStroke(o, o.c.sub) + '" stroke-width="' + f1(1.1 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.17) + '" fill="' + fillC(o, o.c.accent) + '" stroke="' + lineC(o, o.c.accent) + '" stroke-width="' + f1(1.6 * o.sw) + '"/>';
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.07) + '" fill="' + (o.mode === "line" ? o.c.accent : o.c.bg) + '"/>';
+  return s;
+}
+/* ---- 菊 ---- */
+function drawKiku(cx, cy, R, o){
+  var n = o.detail || 16, s = "", k;
+  for (k = 0; k < n; k++){
+    s += '<path d="' + petalPath(R * 0.98, R * 0.13) + '" transform="translate(' + f1(cx) + " " + f1(cy) + ") rotate(" + f1(k * 360 / n) +
+         ')" fill="' + fillC(o, o.c.main) + '" stroke="' + petalStroke(o, o.c.main) + '" stroke-width="' + f1(1 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  for (k = 0; k < n; k++){
+    s += '<path d="' + petalPath(R * 0.62, R * 0.11) + '" transform="translate(' + f1(cx) + " " + f1(cy) + ") rotate(" + f1(k * 360 / n + 180 / n) +
+         ')" fill="' + fillC(o, o.c.sub) + '" stroke="' + petalStroke(o, o.c.sub) + '" stroke-width="' + f1(0.9 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.15) + '" fill="' + fillC(o, o.c.accent) + '" stroke="' + lineC(o, o.c.accent) + '" stroke-width="' + f1(1.5 * o.sw) + '"/>';
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.06) + '" fill="' + (o.mode === "line" ? o.c.accent : o.c.bg) + '"/>';
+  return s;
+}
+/* ---- 梅 ---- */
+function drawUme(cx, cy, R, o){
+  var s = "", k, pp, sp;
+  for (k = 0; k < 5; k++){
+    pp = pol(cx, cy, R * 0.47, k * 72);
+    s += '<circle cx="' + f1(pp[0]) + '" cy="' + f1(pp[1]) + '" r="' + f1(R * 0.41) + '" fill="' + fillC(o, o.c.main) +
+         '" stroke="' + petalStroke(o, o.c.main) + '" stroke-width="' + f1(1.3 * o.sw) + '"/>';
+  }
+  for (k = 0; k < 5; k++){
+    sp = pol(cx, cy, R * 0.30, k * 72 + 36);
+    s += '<line x1="' + f1(cx) + '" y1="' + f1(cy) + '" x2="' + f1(sp[0]) + '" y2="' + f1(sp[1]) + '" stroke="' + o.c.accent + '" stroke-width="' + f1(1.7 * o.sw) + '"/>';
+    s += '<circle cx="' + f1(sp[0]) + '" cy="' + f1(sp[1]) + '" r="' + f1(R * 0.05) + '" fill="' + o.c.accent + '"/>';
+  }
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.10) + '" fill="' + fillC(o, o.c.sub) + '" stroke="' + lineC(o, o.c.sub) + '" stroke-width="' + f1(1.3 * o.sw) + '"/>';
+  return s;
+}
+/* ---- 桜 ---- */
+function drawSakura(cx, cy, R, o){
+  var s = "", k, sp;
+  for (k = 0; k < 5; k++){
+    s += '<path d="' + sakuraPetalPath(R * 0.98, R * 0.46) + '" transform="translate(' + f1(cx) + " " + f1(cy) + ") rotate(" + (k * 72) +
+         ')" fill="' + fillC(o, o.c.main) + '" stroke="' + petalStroke(o, o.c.main) + '" stroke-width="' + f1(1.3 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  for (k = 0; k < 5; k++){
+    sp = pol(cx, cy, R * 0.24, k * 72 + 36);
+    s += '<circle cx="' + f1(sp[0]) + '" cy="' + f1(sp[1]) + '" r="' + f1(R * 0.045) + '" fill="' + o.c.accent + '"/>';
+  }
+  s += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * 0.11) + '" fill="' + fillC(o, o.c.accent) + '" stroke="' + lineC(o, o.c.accent) + '" stroke-width="' + f1(1.4 * o.sw) + '"/>';
+  return s;
+}
+/* ---- 唐草 ---- */
+function leafPath(L, W){
+  return "M0 0 Q " + f1(W) + " " + f1(-L * 0.45) + " 0 " + f1(-L) + " Q " + f1(-W * 0.55) + " " + f1(-L * 0.4) + " 0 0 Z";
+}
+function drawKarakusa(cx, cy, R, o){
+  var s = "";
+  function X(dx, dy){ return [cx + dx * R, cy + dy * R]; }
+  var p;
+  p = X(-0.95, 0.82);
+  s += '<path d="M' + f1(p[0]) + " " + f1(p[1]) +
+       " C" + f1(cx - 0.2 * R) + " " + f1(cy + 0.58 * R) + " " + f1(cx - 0.78 * R) + " " + f1(cy - 0.08 * R) + " " + f1(cx - 0.18 * R) + " " + f1(cy - 0.30 * R) +
+       " C" + f1(cx + 0.32 * R) + " " + f1(cy - 0.48 * R) + " " + f1(cx + 0.48 * R) + " " + f1(cy - 0.02 * R) + " " + f1(cx + 0.86 * R) + " " + f1(cy - 0.34 * R) +
+       '" fill="none" stroke="' + o.c.main + '" stroke-width="' + f1(3.8 * o.sw) + '" stroke-linecap="round"/>';
+  p = X(0.16, 0.28);
+  s += '<path d="' + spiralPath(p[0], p[1], R * 0.46, 2.3, 1, -0.6) + '" fill="none" stroke="' + o.c.main + '" stroke-width="' + f1(3.8 * o.sw) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+  p = X(-0.60, 0.30);
+  s += '<path d="' + spiralPath(p[0], p[1], R * 0.24, 2.1, -1, 0.8) + '" fill="none" stroke="' + o.c.sub + '" stroke-width="' + f1(3.2 * o.sw) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+  p = X(0.72, -0.52);
+  s += '<path d="' + spiralPath(p[0], p[1], R * 0.17, 2, 1, 0.2) + '" fill="none" stroke="' + o.c.sub + '" stroke-width="' + f1(3 * o.sw) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+  var leaves = [[-0.52, -0.02, -38], [0.30, -0.52, 28], [-0.02, 0.60, 168], [0.55, 0.42, 120]];
+  for (var i = 0; i < leaves.length; i++){
+    p = X(leaves[i][0], leaves[i][1]);
+    s += '<path d="' + leafPath(R * 0.34, R * 0.15) + '" transform="translate(' + f1(p[0]) + " " + f1(p[1]) + ") rotate(" + leaves[i][2] +
+         ')" fill="' + fillC(o, o.c.sub) + '" stroke="' + lineC(o, o.c.sub) + '" stroke-width="' + f1(1.4 * o.sw) + '" stroke-linejoin="round"/>';
+  }
+  var dots = [[-0.88, -0.55], [0.92, 0.12], [0.05, -0.82]];
+  for (var j = 0; j < dots.length; j++){
+    p = X(dots[j][0], dots[j][1]);
+    s += '<circle cx="' + f1(p[0]) + '" cy="' + f1(p[1]) + '" r="' + f1(R * 0.05) + '" fill="' + o.c.accent + '"/>';
+  }
+  return s;
+}
+/* ---- 鶴（折鶴） ---- */
+function drawTsuru(cx, cy, R, o){
+  function rel(list){ return list.map(function(q){ return f1(cx + q[0] * R) + "," + f1(cy + q[1] * R); }).join(" "); }
+  var sep = o.mode === "line" ? "none" : o.c.bg, swd = f1(1.2 * o.sw), s = "";
+  s += '<polygon points="' + rel([[-0.95,-0.55],[-0.08,-0.02],[-0.52,0.30]]) + '" fill="' + fillC(o, o.c.sub) + '" stroke="' + (o.mode === "line" ? o.c.sub : sep) + '" stroke-width="' + swd + '" stroke-linejoin="round"/>';
+  s += '<polygon points="' + rel([[-0.12,-0.06],[0.06,-0.97],[0.46,0.04]]) + '" fill="' + fillC(o, o.c.main) + '" stroke="' + (o.mode === "line" ? o.c.main : sep) + '" stroke-width="' + swd + '" stroke-linejoin="round"/>';
+  s += '<polygon points="' + rel([[-0.88,0.36],[0.08,-0.10],[0.78,0.14],[0.08,0.32]]) + '" fill="' + fillC(o, o.c.main) + '" stroke="' + (o.mode === "line" ? o.c.main : sep) + '" stroke-width="' + swd + '" stroke-linejoin="round"/>';
+  s += '<polygon points="' + rel([[0.52,0.02],[0.80,-0.52],[0.94,-0.44],[0.68,0.18]]) + '" fill="' + fillC(o, o.c.main) + '" stroke="' + (o.mode === "line" ? o.c.main : sep) + '" stroke-width="' + swd + '" stroke-linejoin="round"/>';
+  s += '<polygon points="' + rel([[0.80,-0.52],[1.02,-0.40],[0.86,-0.32]]) + '" fill="' + o.c.accent + '"/>';
+  s += '<circle cx="' + f1(cx + 0.83 * R) + '" cy="' + f1(cy - 0.45 * R) + '" r="' + f1(R * 0.035) + '" fill="' + o.c.bg + '"/>';
+  s += '<polygon points="' + rel([[-0.30,0.30],[0.34,0.30],[0.02,0.52]]) + '" fill="' + fillC(o, o.c.sub) + '" stroke="' + (o.mode === "line" ? o.c.sub : sep) + '" stroke-width="' + swd + '" stroke-linejoin="round"/>';
+  return s;
+}
+
+/* ================= pattern registry ================= */
+function cellGen(draw, R){
+  return function(o){ return cellTile(o, function(x, y){ return draw(x, y, R || 52, o); }); };
+}
+var PATTERNS = [
+  { id:"tatewaku", name:"立涌", reading:"たてわく", gen:gTatewaku,
+    meaning:"立ちのぼる水蒸気や雲をかたどり、運気の上昇を願う有職文様の代表格。公家の装束に多く用いられた。" },
+  { id:"karahana", name:"唐花", reading:"からはな", gen:cellGen(drawKarahana), detail:{ label:"花びらの数", min:5, max:12, def:8 },
+    meaning:"唐風に想像された架空の花。富貴と繁栄を象徴し、宮廷装束を華やかに彩った文様。" },
+  { id:"seigaiha", name:"青海波", reading:"せいがいは", gen:gSeigaiha,
+    meaning:"穏やかな波がどこまでも続くさまに、平和な暮らしと長寿を願った文様。『源氏物語』の衣装にも登場する。" },
+  { id:"shippo", name:"七宝", reading:"しっぽう", gen:gShippo,
+    meaning:"重なり合う円は円満・調和・繁栄の象徴。仏教で尊ぶ「七宝」の名にも通じる格調高い幾何文様。" },
+  { id:"kikko", name:"亀甲", reading:"きっこう", gen:gKikko,
+    meaning:"亀の甲羅をかたどった正六角形の文様。長寿と吉祥を表し、古くから装束や調度に用いられた。" },
+  { id:"asanoha", name:"麻の葉", reading:"あさのは", gen:gAsanoha,
+    meaning:"麻がまっすぐ早く育つことから、子どもの健やかな成長を願い、魔除けとして産着などに用いられた。" },
+  { id:"karakusa", name:"唐草", reading:"からくさ", gen:cellGen(drawKarakusa),
+    meaning:"つるが四方へ伸び続ける生命力を表し、子孫繁栄と長寿を願う文様。唐風の渦巻きが特徴。" },
+  { id:"kiku", name:"菊", reading:"きく", gen:cellGen(drawKiku), detail:{ label:"花びらの数", min:10, max:28, step:2, def:16 },
+    meaning:"延命長寿の象徴とされる花。皇室の御紋としても知られ、日本を代表する花文様のひとつ。" },
+  { id:"ume", name:"梅", reading:"うめ", gen:cellGen(drawUme),
+    meaning:"寒さに耐えて早春に咲く姿が、忍耐と希望の象徴。学問の神・菅原道真ゆかりの花としても知られる。" },
+  { id:"sakura", name:"桜", reading:"さくら", gen:cellGen(drawSakura),
+    meaning:"春の訪れと繁栄を告げる花。花びらの先の切れ込みが桜ならではの特徴で、愛され続けてきた文様。" },
+  { id:"ryusui", name:"流水", reading:"りゅうすい", gen:gRyusui,
+    meaning:"絶え間なく流れる水は清らかさの象徴。水は火を制すことから、火災除けの願いも込められた。" },
+  { id:"ichimatsu", name:"市松", reading:"いちまつ", gen:gIchimatsu,
+    meaning:"二色の正方形が途切れることなく続く格子は繁栄の象徴。石畳文様とも呼ばれる。" },
+  { id:"yagasuri", name:"矢絣", reading:"やがすり", gen:gYagasuri,
+    meaning:"射た矢は戻らないことから婚礼の縁起物として愛された文様。矢には魔を払う力があるともいわれた。" },
+  { id:"tsuru", name:"鶴", reading:"つる", gen:cellGen(drawTsuru),
+    meaning:"「鶴は千年」といわれる長寿の象徴。夫婦円満や大願成就の願いにも用いられる、折鶴を思わせる意匠。" }
+];
+function patById(id){ for (var i=0;i<PATTERNS.length;i++) if (PATTERNS[i].id===id) return PATTERNS[i]; return PATTERNS[0]; }
+
+var PRESETS = [
+  { label:"青海波 × 七宝", p1:"seigaiha", p2:"shippo", pal:"ai", op:0.5, blend:"multiply" },
+  { label:"立涌 × 唐花", p1:"tatewaku", p2:"karahana", pal:"suo", op:0.55, blend:"normal" },
+  { label:"麻の葉 × 菊", p1:"asanoha", p2:"kiku", pal:"moegi", op:0.5, blend:"multiply" },
+  { label:"亀甲 × 梅", p1:"kikko", p2:"ume", pal:"yamabuki", op:0.6, blend:"normal" }
+];
+
+/* ================= state ================= */
+function defDetail(patId){
+  var p = patById(patId);
+  return p.detail ? p.detail.def : null;
+}
+var state = {
+  mode: "arrange",
+  activeLayer: 1,
+  paletteId: "ai",
+  colors: { bg:"#f2eee1", main:"#2c4a73", sub:"#7e9cc0", accent:"#b3402a" },
+  style: "both",
+  stroke: 1,
+  layout: "grid",
+  showGrid: false,
+  seed: null,
+  l1: { pattern:"seigaiha", scale:1, rotate:0, detail:null },
+  l2: { pattern:"shippo", scale:1, rotate:0, detail:null, enabled:false, opacity:0.55, blend:"multiply" }
+};
+state.l1.detail = defDetail(state.l1.pattern);
+state.l2.detail = defDetail(state.l2.pattern);
+
+function layerState(n){ return n === 1 ? state.l1 : state.l2; }
+function activeLayerState(){ return layerState(state.activeLayer); }
+
+function optsFor(layer, clip){
+  return { c: state.colors, sw: state.stroke, mode: state.style, detail: layer.detail, clip: clip, layout: state.layout };
+}
+function tileContent(layer, clip){
+  return patById(layer.pattern).gen(optsFor(layer, clip));
+}
+function transformOf(layer){
+  return "rotate(" + layer.rotate + ") scale(" + layer.scale + ")";
+}
+function buildDefs(){
+  var t1 = tileContent(state.l1, "clp1");
+  var t2 = state.l2.enabled ? tileContent(state.l2, "clp2") : "";
+  var d = "<defs>" +
+    '<clipPath id="clp1"><rect width="240" height="240"/></clipPath>' +
+    '<clipPath id="clp2"><rect width="240" height="240"/></clipPath>' +
+    '<pattern id="pat1" width="240" height="240" patternUnits="userSpaceOnUse" patternTransform="' + transformOf(state.l1) + '">' +
+      '<rect width="240" height="240" fill="' + state.colors.bg + '"/>' + t1 + "</pattern>";
+  if (state.l2.enabled){
+    d += '<pattern id="pat2" width="240" height="240" patternUnits="userSpaceOnUse" patternTransform="' + transformOf(state.l2) + '">' + t2 + "</pattern>";
+  }
+  d += '<pattern id="gridp" width="240" height="240" patternUnits="userSpaceOnUse" patternTransform="' + transformOf(state.l1) + '">' +
+       '<path d="M240 0H0V240" fill="none" stroke="#b03a26" stroke-width="2"/></pattern></defs>';
+  return { defs: d, t1: t1, t2: t2 };
+}
+function layer2Rect(w, h){
+  if (!state.l2.enabled) return "";
+  return '<rect width="' + w + '" height="' + h + '" fill="url(#pat2)" opacity="' + state.l2.opacity +
+         '" style="mix-blend-mode:' + state.l2.blend + '"/>';
+}
+function designName(){
+  var pal = palById(state.paletteId);
+  var palName = state.paletteId === "custom" ? "自家配色" : pal.name;
+  var n = palName + "に" + patById(state.l1.pattern).name;
+  if (state.l2.enabled) n += "・" + patById(state.l2.pattern).name + "重ね";
+  return "「" + n + "」";
+}
+
+function render(){
+  var built = buildDefs();
+  var svg = document.getElementById("stageSvg");
+  var inner = built.defs +
+    '<rect width="1200" height="840" fill="url(#pat1)"/>' + layer2Rect(1200, 840);
+  if (state.showGrid) inner += '<rect width="1200" height="840" fill="url(#gridp)" pointer-events="none"/>';
+  svg.innerHTML = inner;
+
+  /* name plate */
+  document.getElementById("designName").textContent = designName();
+  document.getElementById("designSeed").textContent =
+    state.seed ? "生成の種 No." + state.seed + " ／ シームレスタイル（240×240）で書き出しできます" : "シームレスタイル（240×240）で書き出しできます";
+  var dl = "";
+  var p1 = patById(state.l1.pattern);
+  dl += "<dt>" + p1.name + '<span class="reading">' + p1.reading + "</span></dt><dd>" + esc(p1.meaning) + "</dd>";
+  if (state.l2.enabled){
+    var p2 = patById(state.l2.pattern);
+    dl += "<dt>重ね：" + p2.name + '<span class="reading">' + p2.reading + "</span></dt><dd>" + esc(p2.meaning) + "</dd>";
+  }
+  document.getElementById("meaningList").innerHTML = dl;
+  document.getElementById("seedNum").textContent = state.seed ? String(state.seed) : "—";
+
+  renderMockups();
+  syncControls();
+}
+
+function renderMockups(){
+  var c = state.colors;
+  var over = function(shape){
+    if (!state.l2.enabled) return "";
+    return shape.replace('fill="url(#pat1)"', 'fill="url(#pat2)" opacity="' + state.l2.opacity + '" style="mix-blend-mode:' + state.l2.blend + '"');
+  };
+  var clothShape = '<rect x="12" y="12" width="176" height="176" fill="url(#pat1)"/>';
+  document.getElementById("mockCloth").innerHTML =
+    clothShape + over(clothShape) +
+    '<rect x="12" y="12" width="176" height="176" fill="none" stroke="' + c.main + '" stroke-width="7" opacity="0.5"/>' +
+    '<rect x="27" y="27" width="146" height="146" fill="none" stroke="' + c.main + '" stroke-width="2" opacity="0.5"/>';
+  var toteShape = '<path d="M55 72 L145 72 L156 190 L44 190 Z" fill="url(#pat1)"/>';
+  document.getElementById("mockTote").innerHTML =
+    '<path d="M74 72 C74 34 96 34 96 72 M104 72 C104 34 126 34 126 72" fill="none" stroke="' + c.main + '" stroke-width="6"/>' +
+    toteShape + over(toteShape) +
+    '<path d="M55 72 L145 72 L156 190 L44 190 Z" fill="none" stroke="' + c.main + '" stroke-width="2" opacity="0.45"/>' +
+    '<path d="M50 168 L150 168 L156 190 L44 190 Z" fill="#000" opacity="0.05"/>';
+  var fan = "", a, R = 148, cx = 100, cy = 188, wedges = 8, step = 13;
+  for (var i = 0; i < wedges; i++){
+    a = -((wedges - 1) * step) / 2 + i * step;
+    var a1 = (a - step / 2) * Math.PI / 180, a2 = (a + step / 2) * Math.PI / 180;
+    var x1 = cx + R * Math.sin(a1), y1 = cy - R * Math.cos(a1);
+    var x2 = cx + R * Math.sin(a2), y2 = cy - R * Math.cos(a2);
+    fan += '<path d="M' + cx + " " + cy + " L" + f1(x1) + " " + f1(y1) + " A" + R + " " + R + " 0 0 1 " + f1(x2) + " " + f1(y2) + ' Z" fill="url(#pat1)" stroke="#8a6d2f" stroke-width="1"/>';
+  }
+  if (state.l2.enabled){
+    for (var j = 0; j < wedges; j++){
+      a = -((wedges - 1) * step) / 2 + j * step;
+      var b1 = (a - step / 2) * Math.PI / 180, b2 = (a + step / 2) * Math.PI / 180;
+      var u1 = cx + R * Math.sin(b1), v1 = cy - R * Math.cos(b1);
+      var u2 = cx + R * Math.sin(b2), v2 = cy - R * Math.cos(b2);
+      fan += '<path d="M' + cx + " " + cy + " L" + f1(u1) + " " + f1(v1) + " A" + R + " " + R + " 0 0 1 " + f1(u2) + " " + f1(v2) + ' Z" fill="url(#pat2)" opacity="' + state.l2.opacity + '" style="mix-blend-mode:' + state.l2.blend + '"/>';
+    }
+  }
+  for (var k2 = 0; k2 < wedges; k2++){
+    a = -((wedges - 1) * step) / 2 + k2 * step;
+    var ra = a * Math.PI / 180;
+    fan += '<line x1="' + cx + '" y1="' + cy + '" x2="' + f1(cx + R * Math.sin(ra)) + '" y2="' + f1(cy - R * Math.cos(ra)) + '" stroke="#8a6d2f" stroke-width="1.6"/>';
+  }
+  fan += '<circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#8a6d2f"/>';
+  document.getElementById("mockFan").innerHTML = fan;
+}
+
+/* ================= controls ================= */
+var $ = function(id){ return document.getElementById(id); };
+
+function syncControls(){
+  var L = activeLayerState();
+  document.querySelectorAll("#patGrid .pat-btn").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-pat") === L.pattern ? "true" : "false");
+  });
+  $("scaleRange").value = L.scale; $("scaleOut").textContent = Number(L.scale).toFixed(2);
+  $("rotRange").value = L.rotate; $("rotOut").textContent = L.rotate + "°";
+  var pat = patById(L.pattern);
+  if (pat.detail){
+    $("detailCtl").classList.remove("hidden");
+    var d = $("detailRange");
+    d.min = pat.detail.min; d.max = pat.detail.max; d.step = pat.detail.step || 1;
+    d.value = L.detail != null ? L.detail : pat.detail.def;
+    $("detailLabel").textContent = pat.detail.label;
+    $("detailOut").textContent = d.value;
+  } else {
+    $("detailCtl").classList.add("hidden");
+  }
+  $("tabL1").setAttribute("aria-pressed", state.activeLayer === 1 ? "true" : "false");
+  $("tabL2").setAttribute("aria-pressed", state.activeLayer === 2 ? "true" : "false");
+  $("tabL2").disabled = !state.l2.enabled;
+  $("l2Controls").classList.toggle("hidden", !state.l2.enabled);
+  if (state.l2.enabled){
+    $("opRange").value = state.l2.opacity; $("opOut").textContent = Number(state.l2.opacity).toFixed(2);
+    $("blendSel").value = state.l2.blend;
+  }
+  document.querySelectorAll("#layoutSeg button").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-layout") === state.layout ? "true" : "false");
+  });
+  document.querySelectorAll("#styleSeg button").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-style") === state.style ? "true" : "false");
+  });
+  document.querySelectorAll("#palList .pal-btn").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-pal") === state.paletteId ? "true" : "false");
+  });
+  $("strokeRange").value = state.stroke; $("strokeOut").textContent = Number(state.stroke).toFixed(2);
+  $("cBg").value = state.colors.bg; $("hBg").textContent = state.colors.bg;
+  $("cMain").value = state.colors.main; $("hMain").textContent = state.colors.main;
+  $("cSub").value = state.colors.sub; $("hSub").textContent = state.colors.sub;
+  $("cAccent").value = state.colors.accent; $("hAccent").textContent = state.colors.accent;
+  $("gridToggle").setAttribute("aria-pressed", state.showGrid ? "true" : "false");
+}
+
+function buildPatternGrid(){
+  var grid = $("patGrid"), html = "";
+  var thumbPal = palById("ai");
+  PATTERNS.forEach(function(p){
+    var o = { c: { bg: thumbPal.bg, main: thumbPal.main, sub: thumbPal.sub, accent: thumbPal.accent },
+              sw: 1, mode: "both", detail: p.detail ? p.detail.def : null, clip: "th-" + p.id, layout: "grid" };
+    var content = "";
+    try { content = p.gen(o); } catch (e) { content = ""; }
+    html += '<button class="pat-btn" data-pat="' + p.id + '" aria-pressed="false" title="' + p.name + "（" + p.reading + '）">' +
+      '<svg viewBox="0 0 240 240" aria-hidden="true"><defs><clipPath id="th-' + p.id + '"><rect width="240" height="240"/></clipPath></defs>' +
+      '<rect width="240" height="240" fill="' + thumbPal.bg + '"/>' + content + "</svg><span>" + p.name + "</span></button>";
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll(".pat-btn").forEach(function(b){
+    b.addEventListener("click", function(){
+      var L = activeLayerState();
+      L.pattern = b.getAttribute("data-pat");
+      if (L.detail == null || !patById(L.pattern).detail) L.detail = defDetail(L.pattern);
+      else if (patById(L.pattern).detail) L.detail = patById(L.pattern).detail.def;
+      render();
+    });
+  });
+}
+function buildPaletteList(){
+  var html = "";
+  PALETTES.forEach(function(p){
+    html += '<button class="pal-btn" data-pal="' + p.id + '" aria-pressed="false">' +
+      '<span class="pname">' + p.name + '</span><span class="pread">' + p.reading + '</span>' +
+      '<span class="pal-chips"><i style="background:' + p.bg + '"></i><i style="background:' + p.main + '"></i><i style="background:' + p.sub + '"></i><i style="background:' + p.accent + '"></i></span></button>';
+  });
+  $("palList").innerHTML = html;
+  $("palList").querySelectorAll(".pal-btn").forEach(function(b){
+    b.addEventListener("click", function(){
+      var p = palById(b.getAttribute("data-pal"));
+      state.paletteId = p.id;
+      state.colors = { bg: p.bg, main: p.main, sub: p.sub, accent: p.accent };
+      render();
+    });
+  });
+}
+function buildPresets(){
+  var html = "";
+  PRESETS.forEach(function(pr, i){ html += '<button class="tool-btn" data-preset="' + i + '">' + pr.label + "</button>"; });
+  $("presetRow").innerHTML = html;
+  $("presetRow").querySelectorAll("[data-preset]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var pr = PRESETS[Number(b.getAttribute("data-preset"))];
+      var pal = palById(pr.pal);
+      state.paletteId = pal.id;
+      state.colors = { bg: pal.bg, main: pal.main, sub: pal.sub, accent: pal.accent };
+      state.l1.pattern = pr.p1; state.l1.detail = defDetail(pr.p1);
+      state.l2.pattern = pr.p2; state.l2.detail = defDetail(pr.p2);
+      state.l2.opacity = pr.op; state.l2.blend = pr.blend;
+      render();
+    });
+  });
+}
+
+function setMode(mode){
+  state.mode = mode;
+  document.body.setAttribute("data-mode", mode);
+  document.querySelectorAll("[data-mode-btn]").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-mode-btn") === mode ? "true" : "false");
+  });
+  if (mode === "arrange"){
+    state.l2.enabled = false;
+    if (state.activeLayer === 2) state.activeLayer = 1;
+  } else if (mode === "combine"){
+    state.l2.enabled = true;
+  }
+  $("presetBlock").classList.toggle("hidden", mode !== "combine");
+  render();
+}
+
+/* ================= random generation ================= */
+var CELL_IDS = ["karahana","kiku","ume","sakura","karakusa","tsuru"];
+function applySeed(seed){
+  var rng = mulberry32(seed);
+  var pick = function(arr){ return arr[Math.floor(rng() * arr.length)]; };
+  var pal = pick(PALETTES);
+  state.paletteId = pal.id;
+  state.colors = { bg: pal.bg, main: pal.main, sub: pal.sub, accent: pal.accent };
+  state.l1.pattern = pick(PATTERNS).id;
+  state.l1.scale = Math.round((0.6 + rng() * 1.0) * 20) / 20;
+  state.l1.rotate = CELL_IDS.indexOf(state.l1.pattern) >= 0 ? pick([0, 0, 15, 30, 45]) : 0;
+  state.l1.detail = defDetail(state.l1.pattern);
+  if (state.l1.detail != null && patById(state.l1.pattern).detail){
+    var d = patById(state.l1.pattern).detail;
+    state.l1.detail = d.min + Math.floor(rng() * ((d.max - d.min) / (d.step || 1) + 1)) * (d.step || 1);
+  }
+  state.l2.enabled = rng() < 0.55;
+  if (state.l2.enabled){
+    do { state.l2.pattern = pick(PATTERNS).id; } while (state.l2.pattern === state.l1.pattern);
+    state.l2.scale = Math.round((0.6 + rng() * 1.2) * 20) / 20;
+    state.l2.rotate = CELL_IDS.indexOf(state.l2.pattern) >= 0 ? pick([0, 15, 30, 45]) : 0;
+    state.l2.detail = defDetail(state.l2.pattern);
+    state.l2.opacity = Math.round((0.35 + rng() * 0.35) * 20) / 20;
+    state.l2.blend = pick(["normal", "multiply", "multiply", "overlay", "soft-light"]);
+  }
+  state.style = pick(["both", "both", "both", "fill", "line"]);
+  state.stroke = Math.round((0.8 + rng() * 0.6) * 10) / 10;
+  state.layout = pick(["grid", "grid", "chidori"]);
+  state.seed = seed;
+  if (state.mode !== "create" && state.mode !== "combine" && !state.l2.enabled) { /* keep mode */ }
+  if (!state.l2.enabled && state.activeLayer === 2) state.activeLayer = 1;
+  render();
+}
+function mutate(){
+  if (state.seed == null){ applySeed(Math.floor(Math.random() * 899999) + 1); return; }
+  var rng = mulberry32(state.seed * 7 + 13);
+  var which = Math.floor(rng() * 3);
+  if (which === 0){
+    var pal = PALETTES[Math.floor(rng() * PALETTES.length)];
+    state.paletteId = pal.id;
+    state.colors = { bg: pal.bg, main: pal.main, sub: pal.sub, accent: pal.accent };
+  } else if (which === 1){
+    state.l1.scale = Math.min(2.1, Math.max(0.45, Math.round((state.l1.scale + (rng() - 0.5) * 0.5) * 20) / 20));
+    if (state.l2.enabled) state.l2.opacity = Math.min(1, Math.max(0.15, Math.round((state.l2.opacity + (rng() - 0.5) * 0.3) * 20) / 20));
+  } else {
+    var others = PATTERNS.filter(function(p){ return p.id !== state.l1.pattern; });
+    var np = others[Math.floor(rng() * others.length)];
+    if (state.l2.enabled && rng() < 0.5){ state.l2.pattern = np.id; state.l2.detail = defDetail(np.id); }
+    else { state.l1.pattern = np.id; state.l1.detail = defDetail(np.id); }
+  }
+  render();
+}
+
+/* ================= export =================
+   Microsoft Edge silently drops programmatic downloads: an <a download>
+   element clicked from script — above all from an async callback such as
+   canvas conversion, where the original click gesture is long gone — can
+   be swallowed without any trace, which made these buttons look completely
+   dead in Edge while the same code saved files in Chrome. Exports
+   therefore never rely on an auto-clicked download:
+   - Pressing a button immediately shows the result panel (#exportResult),
+     so every press produces visible feedback, on success and on failure.
+   - The generated file is surfaced in the page itself: a preview image
+     (savable via right-click / long-press in any browser) plus a real
+     link the user clicks with a fresh gesture, which Edge honors. PNGs
+     are delivered as data URLs; SVGs additionally keep their markup in a
+     copyable textarea, a path no download blocking can defeat.
+   - A best-effort auto-download is still attempted for browsers that
+     allow it, wrapped so a refusal can never break the panel flow.
+   - Failures are reported in the panel with the error detail instead of
+     failing silently. */
+function tryAutoDownload(url, name){
+  try {
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch (e) { /* the in-page panel is the reliable path */ }
+}
+var lastExportBlobUrl = null;
+function exportPending(label){
+  var box = $("exportResult");
+  $("exportMsg").textContent = label + "を生成しています…";
+  $("exportPreview").classList.add("hidden");
+  $("exportActions").classList.add("hidden");
+  $("exportHint").classList.add("hidden");
+  $("exportCode").classList.add("hidden");
+  $("exportCopy").classList.add("hidden");
+  box.classList.remove("hidden");
+}
+function exportFailed(label, err){
+  var msg = label + "の生成に失敗しました。もう一度お試しください。";
+  if (err && err.message) msg += "（詳細：" + err.message + "）";
+  $("exportMsg").textContent = msg;
+  $("exportResult").classList.remove("hidden");
+}
+function showExport(o){
+  if (lastExportBlobUrl && lastExportBlobUrl !== o.url){
+    try { URL.revokeObjectURL(lastExportBlobUrl); } catch (e) {}
+    lastExportBlobUrl = null;
+  }
+  if (o.url && o.url.indexOf("blob:") === 0) lastExportBlobUrl = o.url;
+  $("exportMsg").textContent = o.msg;
+  var img = $("exportImg");
+  img.src = o.url;
+  $("exportPreview").classList.remove("hidden");
+  var open = $("exportOpen");
+  open.href = o.url;
+  open.setAttribute("download", o.name);
+  open.textContent = "「" + o.name + "」を保存する";
+  $("exportActions").classList.remove("hidden");
+  var hint = $("exportHint");
+  hint.textContent = o.hint || "";
+  hint.classList.toggle("hidden", !o.hint);
+  var code = $("exportCode"), copyBtn = $("exportCopy");
+  if (o.svgText){
+    code.value = o.svgText;
+    code.classList.remove("hidden");
+    copyBtn.classList.remove("hidden");
+  } else {
+    code.classList.add("hidden");
+    copyBtn.classList.add("hidden");
+  }
+  $("exportResult").classList.remove("hidden");
+  var box = $("exportResult");
+  if (box.scrollIntoView) { try { box.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+}
+function svgToPngDataUrl(svgStr, w, h, cb){
+  var url;
+  try {
+    url = URL.createObjectURL(new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" }));
+  } catch (e) { cb(null, e); return; }
+  var img = new Image();
+  img.onload = function(){
+    try {
+      var cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      try { URL.revokeObjectURL(url); } catch (e) {}
+      cb(cv.toDataURL("image/png"), null);
+    } catch (err) {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+      cb(null, err);
+    }
+  };
+  img.onerror = function(){
+    try { URL.revokeObjectURL(url); } catch (e) {}
+    cb(null, new Error("文様画像の読み込みに失敗しました"));
+  };
+  img.src = url;
+}
+function fileBase(){
+  return "neo-yushoku-" + state.l1.pattern + (state.l2.enabled ? "-x-" + state.l2.pattern : "") + (state.seed ? "-seed" + state.seed : "");
+}
+var PNG_SAVE_HINT = "保存が始まらないときは、下の「保存する」ボタンを押すか、上の画像を右クリック（スマホ・タブレットは長押し）して『画像を名前を付けて保存』を選んでください。";
+function exportFullPng(){
+  exportPending("全体PNG");
+  var built = buildDefs();
+  var s = '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 1600 1600">' + built.defs +
+    '<rect width="1600" height="1600" fill="url(#pat1)"/>' + layer2Rect(1600, 1600) + "</svg>";
+  var name = fileBase() + "-1600.png";
+  svgToPngDataUrl(s, 1600, 1600, function(dataUrl, err){
+    if (!dataUrl){ exportFailed("全体PNG", err); return; }
+    tryAutoDownload(dataUrl, name);
+    showExport({ url: dataUrl, name: name,
+      msg: "全体PNGを生成しました（1600×1600）",
+      hint: PNG_SAVE_HINT });
+  });
+}
+/* Tile export uses the same pattern pipeline as the stage preview and the
+   full PNG export: buildDefs() bakes each layer's scale/rotation into its
+   patternTransform, and layer2Rect() applies layer 2's opacity and blend
+   mode. Drawing the raw tile content here instead would silently drop the
+   scale, rotation and blend settings. */
+function tileSvgMarkup(px){
+  var built = buildDefs();
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + px + '" height="' + px + '" viewBox="0 0 240 240">' +
+    built.defs +
+    '<rect width="240" height="240" fill="url(#pat1)"/>' + layer2Rect(240, 240) + "</svg>";
+}
+function exportTileSvg(){
+  exportPending("タイルSVG");
+  var s = tileSvgMarkup(480);
+  var url = URL.createObjectURL(new Blob([s], { type: "image/svg+xml;charset=utf-8" }));
+  var name = fileBase() + "-tile.svg";
+  tryAutoDownload(url, name);
+  showExport({ url: url, name: name, svgText: s,
+    msg: "タイルSVGを生成しました（480×480）",
+    hint: "保存が始まらないときは、下の「保存する」ボタンを押すか、末尾のSVGコードをコピーして拡張子 .svg のファイルに貼り付けてください（保存経路に左右されず確実に取り出せます）。" });
+}
+function exportTilePng(){
+  exportPending("タイルPNG");
+  var name = fileBase() + "-tile.png";
+  svgToPngDataUrl(tileSvgMarkup(960), 960, 960, function(dataUrl, err){
+    if (!dataUrl){ exportFailed("タイルPNG", err); return; }
+    tryAutoDownload(dataUrl, name);
+    showExport({ url: dataUrl, name: name,
+      msg: "タイルPNGを生成しました（960×960）",
+      hint: PNG_SAVE_HINT });
+  });
+}
+
+/* ================= wiring ================= */
+document.querySelectorAll("[data-mode-btn]").forEach(function(b){
+  b.addEventListener("click", function(){ setMode(b.getAttribute("data-mode-btn")); });
+});
+$("tabL1").addEventListener("click", function(){ state.activeLayer = 1; render(); });
+$("tabL2").addEventListener("click", function(){ if (state.l2.enabled){ state.activeLayer = 2; render(); } });
+$("scaleRange").addEventListener("input", function(){ activeLayerState().scale = Number(this.value); render(); });
+$("rotRange").addEventListener("input", function(){ activeLayerState().rotate = Number(this.value); render(); });
+$("detailRange").addEventListener("input", function(){ activeLayerState().detail = Number(this.value); render(); });
+$("opRange").addEventListener("input", function(){ state.l2.opacity = Number(this.value); render(); });
+$("blendSel").addEventListener("change", function(){ state.l2.blend = this.value; render(); });
+$("strokeRange").addEventListener("input", function(){ state.stroke = Number(this.value); render(); });
+document.querySelectorAll("#layoutSeg button").forEach(function(b){
+  b.addEventListener("click", function(){ state.layout = b.getAttribute("data-layout"); render(); });
+});
+document.querySelectorAll("#styleSeg button").forEach(function(b){
+  b.addEventListener("click", function(){ state.style = b.getAttribute("data-style"); render(); });
+});
+[["cBg","bg"],["cMain","main"],["cSub","sub"],["cAccent","accent"]].forEach(function(pair){
+  $(pair[0]).addEventListener("input", function(){
+    state.colors[pair[1]] = this.value;
+    state.paletteId = "custom";
+    render();
+  });
+});
+$("gridToggle").addEventListener("click", function(){ state.showGrid = !state.showGrid; render(); });
+$("dlFull").addEventListener("click", function(){ try { exportFullPng(); } catch (e) { exportFailed("全体PNG", e); } });
+$("dlTilePng").addEventListener("click", function(){ try { exportTilePng(); } catch (e) { exportFailed("タイルPNG", e); } });
+$("dlTileSvg").addEventListener("click", function(){ try { exportTileSvg(); } catch (e) { exportFailed("タイルSVG", e); } });
+$("exportCopy").addEventListener("click", function(){
+  var btn = this, code = $("exportCode"), done = function(){
+    btn.textContent = "コピーしました";
+    setTimeout(function(){ btn.textContent = "SVGコードをコピー"; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code.value).then(done, function(){
+      code.classList.remove("hidden"); code.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      done();
+    });
+  } else {
+    code.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    done();
+  }
+});
+$("genBtn").addEventListener("click", function(){ applySeed(Math.floor(Math.random() * 899999) + 1); });
+$("mutateBtn").addEventListener("click", mutate);
+$("reSeedBtn").addEventListener("click", function(){ $("seedInputRow").classList.toggle("hidden"); });
+$("seedApply").addEventListener("click", function(){
+  var v = parseInt($("seedInput").value, 10);
+  if (v >= 1 && v <= 999999) applySeed(v);
+});
+
+buildPatternGrid();
+buildPaletteList();
+buildPresets();
+render();
+</script>
+</body>
+</html>
